@@ -25,6 +25,7 @@ void ReadFile(const std::string &inputFileName, NeutrinoEventVector &nuEventVect
     tree->SetBranchAddress("NueRecoENu", &nu.m_nueRecoENu);
     tree->SetBranchAddress("NumuRecoENu", &nu.m_numuRecoENu);
     tree->SetBranchAddress("SelTrackRecoContained", &nu.m_selTrackContained);
+    tree->SetBranchAddress("SelTrackRecoMomMethod", &nu.m_selTrackMomentumMethod);
     tree->SetBranchAddress("SelTrackRecoEndX", &nu.m_selTrackRecoEndX);
     tree->SetBranchAddress("SelTrackRecoEndY", &nu.m_selTrackRecoEndY);
     tree->SetBranchAddress("SelTrackRecoEndZ", &nu.m_selTrackRecoEndZ);

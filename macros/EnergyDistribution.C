@@ -1,4 +1,5 @@
 #include "NeutrinoEvent.C"
+#include "Selection.C"
 
 void EnergyDistribution(const std::string &inputFileName);
 void PlotEnergyDistribution(NeutrinoEventVector &nuEventVector_beam, NeutrinoEventVector &nuEventVector_full);
@@ -19,7 +20,7 @@ void EnergyDistribution(const std::string &inputFileName_beam, const std::string
 
 void PlotEnergyDistribution(NeutrinoEventVector &nuEventVector_beam, NeutrinoEventVector &nuEventVector_full)
 {
-    int nBins = 25;
+    int nBins = 40;
     double xMin = 0.0;
     double xMax = 10.0;
 
@@ -30,42 +31,77 @@ void PlotEnergyDistribution(NeutrinoEventVector &nuEventVector_beam, NeutrinoEve
     TH1D * pot = new TH1D("pot", "pot", nBins, xMin, xMax);
 
     // Beam
+    /*
     for (const NeutrinoEvent &nu : nuEventVector_beam)
     {
+        
         if (!nu.m_isNC)
             continue;
+        
+        if (nu.m_selTrackPandizzleScore < -1.0)
+            continue;
 
+        
+        if (nu.m_isNC)
+            continue;
+        
+        if (nu.m_nuPdg != 14)
+            continue;
+        
+        const double plottingEnergy = nu.m_numuRecoENu < 0.0 ? 0.0 : nu.m_numuRecoENu;
+        //const double plottingEnergy = nu.m_eNu;
         const double weight(nu.m_projectedPOTWeight);
-        beam_noOscillations->Fill(nu.m_eNu, weight);
+
+        //beam_noOscillations->Fill(nu.m_eNu, weight);
+        beam_noOscillations->Fill(plottingEnergy, weight);
     }
+    */
 
     // Full
     for (const NeutrinoEvent &nu : nuEventVector_full)
     {
+        /*
         if (!nu.m_isNC)
+            continue;
+        
+              
+        if (nu.m_isNC)
+            continue;
+        
+        if (nu.m_nuPdg != 14)
+            continue;
+        */
+
+        if (!IsNumuSelected(nu))
             continue;
 
         pot->Fill(nu.m_projectedPOTWeight);
 
+        const double plottingEnergy = nu.m_numuRecoENu < 0.0 ? 0.0 : nu.m_numuRecoENu;
+        //const double plottingEnergy = nu.m_eNu;
+
+        if (nu.m_numuRecoENu < 0.0)
+            std::cout << "ISOBEL HERE" << std::endl;
+
         const double noOscillationsWeight(nu.m_projectedPOTWeight);
-        full_noOscillations->Fill(nu.m_eNu, noOscillationsWeight);
+        full_noOscillations->Fill(plottingEnergy, noOscillationsWeight);
 
         const double oscillationsWeight(nu.m_projectedPOTWeight * GetOscWeight(nu));
-        full_oscillations->Fill(nu.m_eNu, oscillationsWeight);
+        full_oscillations->Fill(plottingEnergy, oscillationsWeight);
     }
 
 
-    beam_noOscillations->SetLineColor(kBlack);
+    //beam_noOscillations->SetLineColor(kBlack);
     full_noOscillations->SetLineColor(kBlue);
     full_oscillations->SetLineColor(kRed);
 
     full_noOscillations->SetTitle("NC;TrueNeutrinoEnergy [GeV]; nEvents");
-    beam_noOscillations->Draw("hist same");
+    //beam_noOscillations->Draw("hist same");
     full_noOscillations->Draw("hist same");
     full_oscillations->Draw("hist same");
    
     auto pandrizzleLegend = new TLegend(0.1,0.7,0.48,0.9);
-    pandrizzleLegend->AddEntry(beam_noOscillations, "beam_noOscillations", "l");
+    //pandrizzleLegend->AddEntry(beam_noOscillations, "beam_noOscillations", "l");
     pandrizzleLegend->AddEntry(full_noOscillations, "full_noOscillations", "l");
     pandrizzleLegend->AddEntry(full_oscillations, "full_oscillations", "l");
     pandrizzleLegend->Draw("same");

@@ -1,8 +1,5 @@
 #include "neutrinoEvent.h"
-
-bool IsNueCCSignal(const NeutrinoEvent &nu);
-bool IsNumuCCSignal(const NeutrinoEvent &nu);
-bool IsTrueInFiducialVolume(const NeutrinoEvent &nu);
+#include "Signal.h"
 
 //------------------------------------------------------------------------------------------------------------------------------------------
 
