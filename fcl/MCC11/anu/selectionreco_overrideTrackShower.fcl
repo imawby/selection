@@ -1,0 +1,211 @@
+#include "services_dune.fcl"
+#include "pandoramodules_dune.fcl"
+#include "calorimetry_dune10kt.fcl"
+#include "particleid.fcl"
+#include "pandselectmodule.fcl"
+#include "energyreco.fcl"
+#include "mvamodule.fcl"
+#include "CVNMapper.fcl"
+#include "CVNEvaluator.fcl"
+
+#include "tools_dune.fcl"
+
+process_name: SelectionReco2
+
+services:
+{
+  # Load the service that manages root files for histograms.
+  TFileService: { fileName: "reco_hist.root" }
+  MemoryTracker:     {}
+  TimeTracker:       {}
+  RandomNumberGenerator: {} #ART native random number generator
+  message:              @local::dune_message_services_prod
+  FileCatalogMetadata:  @local::art_file_catalog_mc
+                        @table::dunefd_reco_services
+}
+
+services.Geometry: @local::dune10kt_geo
+services.Geometry.Name: "dune10kt_v2_1x2x6"
+services.Geometry.ROOT: "dune10kt_v2_1x2x6.gdml"
+services.Geometry.GDML: "dune10kt_v2_1x2x6.gdml"
+
+#source is now a root file
+source:
+{
+  module_type: RootInput
+  maxEvents:  -1        # Number of events to create
+}
+
+# Define and configure some modules to do work on each event.
+# First modules are defined; they are scheduled later.
+# Modules are grouped by type.
+physics:
+{
+ producers:
+ {
+   pandoraSel:           @local::dunefd_pandora
+   pandoraTrackSel:      @local::dune_pandoraTrackCreation
+   pandoraShowerSel:     @local::dune_pandoraModularShowerCreation
+   pandoraAllTrackSel:   @local::dune_pandoraTrackCreation
+   pandoraAllShowerSel:  @local::dune_pandoraModularShowerCreation
+
+   warwickPIDSel: {
+        
+     module_type:		"MVAPID"
+     HitLabel:		    "linecluster"
+     TrackLabel:		"pandoraAllTrackSel"
+     ShowerLabel:       "pandoraAllShowerSel"
+     SpacePointLabel:	"pandoraSel"
+
+     CalorimetryAlg:     @local::dune10kt_calorimetryalgmc
+     MVAMethods:		[ "electron","muon","photon","pich","proton" ]
+     WeightFiles:		[ "mvapid_weights/electron_all_BDT.weights.xml",
+                          "mvapid_weights/muon_all_BDT.weights.xml",
+                          "mvapid_weights/photon_all_BDT.weights.xml",
+                          "mvapid_weights/pich_all_BDT.weights.xml",
+                          "mvapid_weights/proton_all_BDT.weights.xml" ]
+   }
+
+   pandoraCaloSel:        @local::dune10kt_calomc
+   pandoraPIDSel:         @local::standard_chi2pid
+   pandoraParamsSel:      @local::pandselect
+   energyRecoNueSel:      @local::dunefd_nuenergyreco
+   energyRecoNumuSel:     @local::dunefd_nuenergyreco
+
+   mvaselectnue:   @local::dunefd_mvaselect
+   mvaselectnumu:  @local::dunefd_mvaselect
+
+   cvnmapSel: @local::standard_cvnmapper
+   cvnevalSel: @local::standard_cvnevaluator
+ }
+
+ prod:     [ pandoraSel, pandoraShowerSel, pandoraTrackSel, pandoraAllShowerSel, pandoraAllTrackSel, pandoraCaloSel, pandoraPIDSel, warwickPIDSel, 
+             energyRecoNueSel, energyRecoNumuSel, cvnmapSel, cvnevalSel ]  
+ stream1:  [ out1 ]
+
+ # Change root file
+ trigger_paths: [ prod ] 
+
+ # Do not change root file
+ end_paths: [ stream1 ]  
+}
+
+outputs:
+{
+ out1:
+ {
+   module_type: RootOutput
+   fileName:    "%ifb_reco.root"
+   dataTier:    "full-reconstructed"
+   compressionLevel: 1
+   saveMemoryObjectThreshold: 0
+ 
+ }
+}
+
+# Pandora
+physics.producers.pandoraSel.GeantModuleLabel:                               "largeant"
+physics.producers.pandoraSel.HitFinderModuleLabel:                           "linecluster"
+
+# PandoraTrack
+physics.producers.pandoraTrackSel.PFParticleLabel:                           "pandoraSel"
+
+# PandoraShower
+physics.producers.pandoraShowerSel.PFParticleLabel:                          "pandoraSel"
+
+# PandoraTrack - All
+physics.producers.pandoraAllTrackSel.PFParticleLabel:                        "pandoraSel"
+physics.producers.pandoraAllTrackSel.UseAllParticles:                         true  
+
+# PandoraShower - All
+physics.producers.pandoraAllShowerSel.PFParticleLabel:                       "pandoraSel"
+physics.producers.pandoraAllShowerSel.UseAllParticles:                        true
+
+# Pandora Calo (needed for input for pandoraPID)
+physics.producers.pandoraCaloSel.TrackModuleLabel:                           "pandoraAllTrackSel"
+physics.producers.pandoraCaloSel.SpacePointModuleLabel:                      "pandoraSel"
+physics.producers.pandoraCaloSel.T0ModuleLabel:                              ""
+physics.producers.pandoraCaloSel.MakeTree:                                    false                 #not sure why this is here?
+
+# PandoraPID (needed as an input for Pandizzle PIDA variable - not even used)
+physics.producers.pandoraPIDSel.TrackModuleLabel:                            "pandoraAllTrackSel"
+physics.producers.pandoraPIDSel.CalorimetryModuleLabel:                      "pandoraAllCaloSel"
+
+# PandoraParams
+physics.producers.pandoraParamsSel.PandizzleWeightFileName:                  "MCC11_anu_Pandizzle_TMVAClassification_BDTG.weights.xml"
+physics.producers.pandoraParamsSel.PandrizzleWeightFileName:                 "MCC11_anu_Pandrizzle_TMVAClassification_BDTG.weights.xml"
+physics.producers.pandoraParamsSel.ModuleLabels.PFParticleModuleLabel:                    "pandoraSel"
+physics.producers.pandoraParamsSel.ModuleLabels.TrackModuleLabel:                         "pandoraAllTrackSel"
+physics.producers.pandoraParamsSel.ModuleLabels.ShowerModuleLabel:                        "pandoraAllShowerSel"
+physics.producers.pandoraParamsSel.ModuleLabels.SpacePointModuleLabel:                    "pandoraSel"
+physics.producers.pandoraParamsSel.ModuleLabels.ClusterModuleLabel:                       "pandoraSel"
+physics.producers.pandoraParamsSel.ModuleLabels.PIDModuleLabel:                           "warwickPIDSel"
+physics.producers.pandoraParamsSel.ModuleLabels.ParticleIDModuleLabel:                    "pandoraPIDSel"
+physics.producers.pandoraParamsSel.ctpHelper.ParticleLabel:                               "pandoraSel"
+physics.producers.pandoraParamsSel.ctpHelper.TrackLabel:                                  "pandoraAllTrackSel"
+physics.producers.pandoraParamsSel.ctpHelper.ShowerLabel:                                 "pandoraAllShowerSel"
+physics.producers.pandoraParamsSel.ctpHelper.CalorimetryLabel:                            "pandoraCaloSel"
+
+physics.producers.pandoraParamsSel.RecoTrackSelectorTool.tool_type:                                "HighestPandizzleScoreRecoVertexTrackSelector"
+physics.producers.pandoraParamsSel.RecoTrackSelectorTool.PandizzleWeightFileName:                   "MCC11_anu_Pandizzle_TMVAClassification_BDTG.weights.xml"
+physics.producers.pandoraParamsSel.RecoTrackSelectorTool.MichelCandidateDistance:                    4
+physics.producers.pandoraParamsSel.RecoTrackSelectorTool.ctpHelper:                                 @local::pandselect.ctpHelper
+physics.producers.pandoraParamsSel.RecoTrackSelectorTool.ctpHelper.ParticleLabel:                  "pandoraSel"
+physics.producers.pandoraParamsSel.RecoTrackSelectorTool.ctpHelper.TrackLabel:                     "pandoraAllTrackSel"
+physics.producers.pandoraParamsSel.RecoTrackSelectorTool.ctpHelper.ShowerLabel:                    "pandoraAllShowerSel"
+physics.producers.pandoraParamsSel.RecoTrackSelectorTool.ctpHelper.CalorimetryLabel:               "pandoraCaloSel"
+physics.producers.pandoraParamsSel.RecoTrackSelectorTool.ModuleLabels:                              @local::pandselect.ModuleLabels
+physics.producers.pandoraParamsSel.RecoTrackSelectorTool.ModuleLabels.TrackModuleLabel:            "pandoraAllTrackSel"
+physics.producers.pandoraParamsSel.RecoTrackSelectorTool.ModuleLabels.ShowerModuleLabel:           "pandoraAllShowerSel"
+physics.producers.pandoraParamsSel.RecoTrackSelectorTool.ModuleLabels.PFParticleModuleLabel:       "pandoraSel"
+physics.producers.pandoraParamsSel.RecoTrackSelectorTool.ModuleLabels.VertexModuleLabel:           "pandoraSel"
+physics.producers.pandoraParamsSel.RecoTrackSelectorTool.ModuleLabels.SpacePointModuleLabel:       "pandoraSel"
+physics.producers.pandoraParamsSel.RecoTrackSelectorTool.ModuleLabels.ClusterModuleLabel:          "pandoraSel"
+physics.producers.pandoraParamsSel.RecoTrackSelectorTool.ModuleLabels.PIDModuleLabel:              "warwickPIDSel"
+physics.producers.pandoraParamsSel.RecoTrackSelectorTool.ModuleLabels.ParticleIDModuleLabel:       "pandoraPIDSel"
+physics.producers.pandoraParamsSel.RecoTrackSelectorTool.ModuleLabels.NumuEnergyRecoModuleLabel:   "energyRecoNumuSel"
+physics.producers.pandoraParamsSel.RecoTrackSelectorTool.ModuleLabels.NueEnergyRecoModuleLabel:    "energyRecoNueSel"
+
+physics.producers.pandoraParamsSel.RecoShowerSelectorTool.tool_type:                               "HighestEnergyRecoVertexShowerSelector"
+physics.producers.pandoraParamsSel.RecoShowerSelectorTool.ModuleLabels:                             @local::pandselect.ModuleLabels
+physics.producers.pandoraParamsSel.RecoShowerSelectorTool.ShowerEnergyAlg:                          @local::pandselect.ShowerEnergyAlg
+physics.producers.pandoraParamsSel.RecoShowerSelectorTool.ModuleLabels.TrackModuleLabel:            "pandoraAllTrackSel"
+physics.producers.pandoraParamsSel.RecoShowerSelectorTool.ModuleLabels.ShowerModuleLabel:           "pandoraAllShowerSel"
+physics.producers.pandoraParamsSel.RecoShowerSelectorTool.ModuleLabels.PFParticleModuleLabel:       "pandoraSel"
+physics.producers.pandoraParamsSel.RecoShowerSelectorTool.ModuleLabels.VertexModuleLabel:           "pandoraSel"
+physics.producers.pandoraParamsSel.RecoShowerSelectorTool.ModuleLabels.SpacePointModuleLabel:       "pandoraSel"
+physics.producers.pandoraParamsSel.RecoShowerSelectorTool.ModuleLabels.ClusterModuleLabel:          "pandoraSel"
+physics.producers.pandoraParamsSel.RecoShowerSelectorTool.ModuleLabels.PIDModuleLabel:              "warwickPIDSel"
+physics.producers.pandoraParamsSel.RecoShowerSelectorTool.ModuleLabels.ParticleIDModuleLabel:       "pandoraPIDSel"
+physics.producers.pandoraParamsSel.RecoShowerSelectorTool.ModuleLabels.NumuEnergyRecoModuleLabel:   "energyRecoNumuSel"
+physics.producers.pandoraParamsSel.RecoShowerSelectorTool.ModuleLabels.NueEnergyRecoModuleLabel:    "energyRecoNueSel"
+
+# Nue Energy Reco
+physics.producers.energyRecoNueSel.WireLabel:                                "caldata"
+physics.producers.energyRecoNueSel.HitLabel:                                 "linecluster"
+physics.producers.energyRecoNueSel.TrackLabel:                               "pandoraAllTrackSel"
+physics.producers.energyRecoNueSel.ShowerLabel:                              "pandoraAllShowerSel"
+physics.producers.energyRecoNueSel.TrackToHitLabel:                          "pandoraAllTrackSel"
+physics.producers.energyRecoNueSel.ShowerToHitLabel:                         "pandoraAllShowerSel"
+physics.producers.energyRecoNueSel.HitToSpacePoint:                          "pandoraSel"
+physics.producers.energyRecoNueSel.RecoMethod:                                2
+
+# Numu Energy Reco
+physics.producers.energyRecoNumuSel.WireLabel:                               "caldata"
+physics.producers.energyRecoNumuSel.HitLabel:                                "linecluster"
+physics.producers.energyRecoNumuSel.TrackLabel:                              "pandoraAllTrackSel"
+physics.producers.energyRecoNumuSel.ShowerLabel:                             "pandoraAllShowerSel"
+physics.producers.energyRecoNumuSel.TrackToHitLabel:                         "pandoraAllTrackSel"
+physics.producers.energyRecoNumuSel.ShowerToHitLabel:                        "pandoraAllShowerSel"
+physics.producers.energyRecoNumuSel.HitToSpacePoint:                         "pandoraSel"
+physics.producers.energyRecoNumuSel.RecoMethod:                               1
+
+# Dune CVN
+physics.producers.cvnmapSel.HitsModuleLabel: "hitfd"
+physics.producers.cvnmapSel.TimeResolution: 1600
+physics.producers.cvnmapSel.TdcWidth: 500
+physics.producers.cvnmapSel.ClusterPMLabel: "cvnmapSel"
+physics.producers.cvnmapSel.WireLength: 2880
+
+physics.producers.cvnevalSel.PixelMapInput: "cvnmapSel"
+physics.producers.cvnevalSel.ResultLabel: "cvnresultSel"

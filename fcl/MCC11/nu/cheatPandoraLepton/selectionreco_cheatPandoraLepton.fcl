@@ -10,7 +10,7 @@
 
 #include "tools_dune.fcl"
 
-process_name: SelectionReco
+process_name: SelectionRecoCheatPandoraLepton
 
 services:
 {
@@ -45,7 +45,7 @@ physics:
  {
    pandoraSel:           @local::dunefd_pandora
    pandoraTrackSel:      @local::dune_pandoraTrackCreation
-   pandoraShowerSel:     @local::dune_pandoraModularShowerCreation_cheatAll
+   pandoraShowerSel:     @local::dune_pandoraModularShowerCreation
 
    warwickPIDSel: {
         
@@ -103,13 +103,14 @@ outputs:
 # Pandora
 physics.producers.pandoraSel.GeantModuleLabel:                               "largeant"
 physics.producers.pandoraSel.HitFinderModuleLabel:                           "linecluster"
+physics.producers.pandoraSel.ConfigFile:                                     "PandoraSettings_Master_DUNEFD_CheatLepton.xml"
+physics.producers.pandoraSel.EnableMCParticles:                               true
 
 # PandoraTrack
 physics.producers.pandoraTrackSel.PFParticleLabel:                           "pandoraSel"
 
 # PandoraShower
 physics.producers.pandoraShowerSel.PFParticleLabel:                          "pandoraSel"
-#physics.producers.pandoraShowerSel.Verbose:  2
 
 # Pandora Calo (needed for input for pandoraPID)
 physics.producers.pandoraCaloSel.TrackModuleLabel:                           "pandoraTrackSel"
