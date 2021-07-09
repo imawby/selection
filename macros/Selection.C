@@ -1,10 +1,16 @@
 #include "neutrinoEvent.h"
 #include "Selection.h"
-
+#include "Signal.h"
 //------------------------------------------------------------------------------------------------------------------------------------------
 
-bool PassOldNueSelection(const NeutrinoEvent &nu)
+bool PassOldNueSelection(const NeutrinoEvent &nu, const bool isNu)
 {
+    if (!isNu)
+    {
+        std::cout << "this hasn't been set for anti neutrinos isobel!!" << std::endl;
+        throw;
+    }
+
     if (nu.m_recoNuVtxNChildren == 0)
         return false;
 
@@ -30,18 +36,53 @@ bool PassOldNueSelection(const NeutrinoEvent &nu)
 
 //------------------------------------------------------------------------------------------------------------------------------------------
 
-bool PassNueSelection(const NeutrinoEvent &nu)
+bool PassNueSelection(const NeutrinoEvent &nu, const bool isNu)
 {
     if (nu.m_recoNuVtxNChildren == 0)
         return false;
 
-    if (nu.m_selShowerPandrizzleScore < NUE_PANDRIZZLE_CUT)
-        return false;
-
-    if (nu.m_selTrackPandizzleScore > NUE_PANDIZZLE_CUT)
-        return false;
-
     if (!IsRecoInFiducialVolume(nu))
+        return false;
+    
+    // CHEATING
+    /*
+    // Remove all anumu/numu background
+    if ((std::abs(nu.m_nuPdg) == 14) && !nu.m_isNC)
+        return false;
+    
+    
+    // Remove all anutau/nutau background
+    if ((std::abs(nu.m_nuPdg) == 16) && !nu.m_isNC)
+        return false;
+    
+    // Remove all NC events
+    if (nu.m_isNC)
+        return false;
+    
+
+    // Prefect
+    if (IsNueCCSignal(nu, isNu))
+    {
+        return true;
+    }
+    else
+    {
+        return false;
+    }
+*/
+
+    // remove events that are actually photons.. 
+    if(nu.m_selShowerTruePdg == 22)
+        return false;
+
+
+    const double nuePandizzleCut(isNu ? NUE_PANDIZZLE_CUT : ANUE_PANDIZZLE_CUT);
+    const double nuePandrizzleCut(isNu ? NUE_PANDRIZZLE_CUT : ANUE_PANDRIZZLE_CUT);
+
+    if (nu.m_selTrackPandizzleScore > nuePandizzleCut)
+        return false;
+
+    if (nu.m_selShowerPandrizzleScore < nuePandrizzleCut)
         return false;
 
     return true;
@@ -49,12 +90,14 @@ bool PassNueSelection(const NeutrinoEvent &nu)
 
 //------------------------------------------------------------------------------------------------------------------------------------------
 
-bool PassNumuSelection(const NeutrinoEvent &nu)
+bool PassNumuSelection(const NeutrinoEvent &nu, const bool isNu)
 {
+    const double numuPandizzleCut(isNu ? NUMU_PANDIZZLE_CUT : ANUMU_PANDIZZLE_CUT);
+
     if (nu.m_recoNuVtxNChildren == 0)
         return false;
     
-    if (nu.m_selTrackPandizzleScore < NUMU_PANDIZZLE_CUT)
+    if (nu.m_selTrackPandizzleScore < numuPandizzleCut)
         return false;
 
     if (!IsRecoInFiducialVolume(nu))
@@ -65,22 +108,48 @@ bool PassNumuSelection(const NeutrinoEvent &nu)
 
 //------------------------------------------------------------------------------------------------------------------------------------------
 
-bool IsNueSelected(const NeutrinoEvent &nu)
+bool IsNueSelected(const NeutrinoEvent &nu, const bool isNu)
 {
-    return PassNueSelection(nu);
+    return PassNueSelection(nu, isNu);
 }
 
 //------------------------------------------------------------------------------------------------------------------------------------------
 
-bool IsNumuSelected(const NeutrinoEvent &nu)
+bool IsNumuSelected(const NeutrinoEvent &nu, const bool isNu)
 {
-    if (IsNueSelected(nu))
+    if (IsNueSelected(nu, isNu))
         return false;
 
-    if (PassNumuSelection(nu))
+    if (PassNumuSelection(nu, isNu))
         return true;
 
     return false;
+}
+
+//------------------------------------------------------------------------------------------------------------------------------------------
+
+bool PassCVNNueSelection(const NeutrinoEvent &nu)
+{
+    if (!IsRecoInFiducialVolume(nu))
+        return false;
+
+    if (nu.m_cvnResultNue < CVN_NUE_CUT)
+        return false;
+
+    return true;
+}
+
+//------------------------------------------------------------------------------------------------------------------------------------------
+
+bool PassCVNNumuSelection(const NeutrinoEvent &nu)
+{
+    if (!IsRecoInFiducialVolume(nu))
+        return false;
+
+    if (nu.m_cvnResultNumu < CVN_NUMU_CUT)
+        return false;
+
+    return true;
 }
 
 //------------------------------------------------------------------------------------------------------------------------------------------

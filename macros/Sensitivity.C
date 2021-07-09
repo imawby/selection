@@ -2,15 +2,16 @@
 #include "Selection.C"
 #include "Signal.C"
 
-void CalculateCoverage(const std::string &inputFileName_full);
-void FillNueEnergyDistribution(const NeutrinoEventVector &nuEventVector_full, const double deltaCP, TH1D *& nueEnergyDistribution);
-void FillNumuEnergyDistribution(const NeutrinoEventVector &nuEventVector_full, const double deltaCP, TH1D *& energyDistribution);
+// these wont work - i need to add in FHC and RHS
+//void CalculateCoverage(const std::string &inputFileName_full);
+//void FillNueEnergyDistribution(const NeutrinoEventVector &nuEventVector_full, const double deltaCP, TH1D *& nueEnergyDistribution);
+//void FillNumuEnergyDistribution(const NeutrinoEventVector &nuEventVector_full, const double deltaCP, TH1D *& energyDistribution);
 double GetOscWeight(const NeutrinoEvent &nu, const double deltaCP);
 double CalculateMinLogLikelihood(TH1D *& energyDistribution_zero, TH1D *& energyDistribution_pi, TH1D *& energyDistribution);
 double CalculateLogLikelihood(const double observed, const double expected);
 
 //------------------------------------------------------------------------------------------------------------------------------------------
-
+/*
 void CalculateCoverage(const NeutrinoEventVector &nuEventVector_full)
 {
     int nDeltaCPValues = 50;
@@ -59,11 +60,11 @@ void CalculateCoverage(const NeutrinoEventVector &nuEventVector_full)
 
 //------------------------------------------------------------------------------------------------------------------------------------------
 
-void FillNueEnergyDistribution(const NeutrinoEventVector &nuEventVector_full, const double deltaCP, TH1D *& nueEnergyDistribution)
+void FillNueEnergyDistribution(const NeutrinoEventVector &nuEventVector_full, const double deltaCP, TH1D *& nueEnergyDistribution, const bool isFHC)
 {
     for (const NeutrinoEvent &nu : nuEventVector_full)
     {
-        if (!IsNueSelected(nu))
+        if (!IsNueSelected(nu, isFHC))
             continue; 
 
         const double weight(nu.m_projectedPOTWeight * (nu.m_isNC ? 1.0 : GetOscWeight(nu, deltaCP)));
@@ -74,11 +75,11 @@ void FillNueEnergyDistribution(const NeutrinoEventVector &nuEventVector_full, co
 
 //------------------------------------------------------------------------------------------------------------------------------------------
 
-void FillNumuEnergyDistribution(const NeutrinoEventVector &nuEventVector_full, const double deltaCP, TH1D *& numuEnergyDistribution)
+void FillNumuEnergyDistribution(const NeutrinoEventVector &nuEventVector_full, const double deltaCP, TH1D *& numuEnergyDistribution, const bool isFHC)
 {
     for (const NeutrinoEvent &nu : nuEventVector_full)
     {
-        if (!IsNumuSelected(nu))
+        if (!IsNumuSelected(nu, isFHC))
             continue;
         
         const double weight(nu.m_projectedPOTWeight * (nu.m_isNC ? 1.0 : GetOscWeight(nu, deltaCP)));
@@ -86,7 +87,7 @@ void FillNumuEnergyDistribution(const NeutrinoEventVector &nuEventVector_full, c
         numuEnergyDistribution->Fill(nu.m_numuRecoENu, weight);
     }
 }
-
+*/
 //------------------------------------------------------------------------------------------------------------------------------------------
 
 double GetOscWeight(const NeutrinoEvent &nu, const double deltaCP)

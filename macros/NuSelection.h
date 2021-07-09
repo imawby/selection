@@ -21,6 +21,7 @@ public:
     TH1D *m_background;
     TH1D *m_selected;
     TH1D *m_signalSelected;
+    TH1D *m_flavourSignalSelected;
     TH1D *m_backgroundRejected;
     TH1D *m_efficiency;
     TH1D *m_purity;
@@ -49,6 +50,7 @@ void PerformSelection(const NeutrinoEventVector &nuVector, NuSelectionHistogramC
 void ProcessHistogramCollection(NuSelectionHistogramCollection &nuSelectionHistogramCollection);
 void ProcessHistograms(NuSelectionHistograms &nuSelectionHistograms);
 void DrawHistogramCollection(NuSelectionHistogramCollection &nuSelectionHistogramCollection, const std::string &histPrefix);
+void WriteHistogramCollection(NuSelectionHistogramCollection &nuSelectionHistogramCollection, const std::string &histPrefix);
 double GetOscWeight(const NeutrinoEvent &nu);
 
 //------------------------------------------------------------------------------------------------------------------------------------------
@@ -59,6 +61,7 @@ NuSelectionHistograms::NuSelectionHistograms() :
     m_background(nullptr),
     m_selected(nullptr),
     m_signalSelected(nullptr),
+    m_flavourSignalSelected(nullptr),
     m_backgroundRejected(nullptr),
     m_efficiency(nullptr),
     m_purity(nullptr),

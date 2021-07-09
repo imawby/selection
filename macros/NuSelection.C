@@ -2,13 +2,16 @@
 #include "Signal.C"
 #include "Selection.C"
 #include "NuSelection.h"
-//#include "/dune/app/users/dbrailsf/oscillation/nu_mu/cutsel/tunings/getOscWeights/getProb3ppWeights.C"
 
+bool PERFORM_CVN_SELECTION = true;
 bool PERFORM_OLD_NUE_SELECTION = false;
+bool IS_NEUTRINO = true;
 
 void NuSelection(const std::string &inputFileName)
 {
+    std::cout << "\033[31m" << "Performing " << "\033[33m" << (PERFORM_CVN_SELECTION ? "CVN " : "DIZZLE ") << "\033[31m" << "selection" << "\033[0m" << std::endl;
     std::cout << "\033[31m" << "Performing " << "\033[33m" << (PERFORM_OLD_NUE_SELECTION ? "old " : "new ") << "\033[31m" << "nue selection" << "\033[0m" << std::endl; 
+    std::cout << "\033[31m" << "For " << "\033[33m" << (IS_NEUTRINO ? "F" : "R") << "\033[31m" << "HC" << "\033[0m" << std::endl;
 
     NeutrinoEventVector neutrinoEventVector;
     ReadFile(inputFileName, neutrinoEventVector);
@@ -26,6 +29,13 @@ void NuSelection(const std::string &inputFileName)
 
     DrawHistogramCollection(nueHistogramCollection, "nue");
     DrawHistogramCollection(numuHistogramCollection, "numu");
+
+    TFile * outputFile = new TFile("NuSelectionHistograms.root", "CREATE");
+
+    WriteHistogramCollection(nueHistogramCollection, "nue_");
+    WriteHistogramCollection(numuHistogramCollection, "numu_");
+
+    outputFile->Close();
 }
 
 //------------------------------------------------------------------------------------------------------------------------------------------
@@ -46,6 +56,7 @@ void InitialiseNuSelectionHistograms(NuSelectionHistograms &nuSelectionHistogram
     nuSelectionHistograms.m_background = new TH1D((histPrefix + "_Background").c_str(), (histPrefix + "_Background").c_str(), nBins, xMin, xMax);
     nuSelectionHistograms.m_selected = new TH1D((histPrefix + "_Selected").c_str(), (histPrefix + "_Selected").c_str(), nBins, xMin, xMax);
     nuSelectionHistograms.m_signalSelected = new TH1D((histPrefix + "_SignalSelected").c_str(), (histPrefix + "_SignalSelected").c_str(), nBins, xMin, xMax);
+    nuSelectionHistograms.m_flavourSignalSelected = new TH1D((histPrefix + "_FlavourSignalSelected").c_str(), (histPrefix + "_FlavourSignalSelected").c_str(), nBins, xMin, xMax);
     nuSelectionHistograms.m_backgroundRejected = new TH1D((histPrefix + "_BackgroundRejected").c_str(), (histPrefix + "_BackgroundRejected").c_str(), nBins, xMin, xMax);
     nuSelectionHistograms.m_efficiency = new TH1D((histPrefix + "_Efficiency").c_str(), (histPrefix + "_Efficiency").c_str(), nBins, xMin, xMax);
     nuSelectionHistograms.m_purity = new TH1D((histPrefix + "_Purity").c_str(), (histPrefix + "_Purity").c_str(), nBins, xMin, xMax);
@@ -57,16 +68,18 @@ void InitialiseNuSelectionHistograms(NuSelectionHistograms &nuSelectionHistogram
 void PerformSelection(const NeutrinoEventVector &nuVector, NuSelectionHistogramCollection &nueSelectionHistogramCollection, 
     NuSelectionHistogramCollection &numuSelectionHistogramCollection)
 {
-    double nueSignal(0.0), nueBackground(0.0), nueSelected(0.0), nueSignalSelected(0.0), nueBackgroundRejected(0.0);
-    double numuSignal(0.0), numuBackground(0.0), numuSelected(0.0), numuSignalSelected(0.0), numuBackgroundRejected(0.0);
+    double nueSignal(0.0), nueBackground(0.0), nueSelected(0.0), nueSignalSelected(0.0), nueFlavourSignalSelected(0.0), nueBackgroundRejected(0.0);
+    double numuSignal(0.0), numuBackground(0.0), numuSelected(0.0), numuSignalSelected(0.0), numuFlavourSignalSelected(0.0), numuBackgroundRejected(0.0);
 
     for (const NeutrinoEvent &nu : nuVector)
     {
-        const bool isNueCCSignal(IsNueCCSignal(nu));
-        const bool isNumuCCSignal(isNueCCSignal ? false : IsNumuCCSignal(nu));
+        const bool isNueCCSignal(IsNueCCSignal(nu, IS_NEUTRINO));
+        const bool isNueFlavourCCSignal(IsNueFlavourCCSignal(nu));
+
+        const bool isNumuCCSignal(isNueCCSignal ? false : IsNumuCCSignal(nu, IS_NEUTRINO));
+        const bool isNumuFlavourCCSignal(isNueFlavourCCSignal ? false : IsNumuFlavourCCSignal(nu));
 
         const double weight(nu.m_projectedPOTWeight * (nu.m_isNC ? 1.0 : GetOscWeight(nu)));
-        //const double weight(nu.m_projectedPOTWeight * GetOscWeight(nu)); //<-- WRONG WEIGHTING
 
         // Fill truth histograms
         if (isNueCCSignal)
@@ -77,7 +90,9 @@ void PerformSelection(const NeutrinoEventVector &nuVector, NuSelectionHistogramC
             nueSelectionHistogramCollection.m_lepMomHists.m_signal->Fill(nu.m_lepMom, weight);
             nueSelectionHistogramCollection.m_lepNuOpeningAngleHists.m_signal->Fill(nu.m_lepNuOpeningAngle, weight);
         }
-        else
+
+        // Background is everything that is not nue flavour CC
+        if (!isNueFlavourCCSignal)
         {
             nueBackground += weight;
             nueSelectionHistogramCollection.m_eNuHists.m_background->Fill(nu.m_eNu, weight);
@@ -94,17 +109,11 @@ void PerformSelection(const NeutrinoEventVector &nuVector, NuSelectionHistogramC
             numuSelectionHistogramCollection.m_lepMomHists.m_signal->Fill(nu.m_lepMom, weight);
             numuSelectionHistogramCollection.m_lepNuOpeningAngleHists.m_signal->Fill(nu.m_lepNuOpeningAngle, weight);
         }
-        else
-        {
-            numuBackground += weight;
-            numuSelectionHistogramCollection.m_eNuHists.m_background->Fill(nu.m_eNu, weight);
-            numuSelectionHistogramCollection.m_qSqrHists.m_background->Fill(nu.m_qSqr, weight);
-            numuSelectionHistogramCollection.m_lepMomHists.m_background->Fill(nu.m_lepMom, weight);
-            numuSelectionHistogramCollection.m_lepNuOpeningAngleHists.m_background->Fill(nu.m_lepNuOpeningAngle, weight);
-        }
+
+        const bool passNueSelection(PERFORM_CVN_SELECTION ? PassCVNNueSelection(nu) : (PERFORM_OLD_NUE_SELECTION ? PassOldNueSelection(nu, IS_NEUTRINO) : PassNueSelection(nu, IS_NEUTRINO)));
 
         // Apply Selection
-        if ((!PERFORM_OLD_NUE_SELECTION && PassNueSelection(nu)) || (PERFORM_OLD_NUE_SELECTION && PassOldNueSelection(nu)))
+        if (passNueSelection)
         {
             nueSelected += weight;
             nueSelectionHistogramCollection.m_eNuHists.m_selected->Fill(nu.m_eNu, weight);
@@ -112,6 +121,7 @@ void PerformSelection(const NeutrinoEventVector &nuVector, NuSelectionHistogramC
             nueSelectionHistogramCollection.m_lepMomHists.m_selected->Fill(nu.m_lepMom, weight);
             nueSelectionHistogramCollection.m_lepNuOpeningAngleHists.m_selected->Fill(nu.m_lepNuOpeningAngle, weight);
 
+            // To be used as numerator in efficiency
             if (isNueCCSignal)
             {
                 nueSignalSelected += weight;
@@ -120,10 +130,21 @@ void PerformSelection(const NeutrinoEventVector &nuVector, NuSelectionHistogramC
                 nueSelectionHistogramCollection.m_lepMomHists.m_signalSelected->Fill(nu.m_lepMom, weight);
                 nueSelectionHistogramCollection.m_lepNuOpeningAngleHists.m_signalSelected->Fill(nu.m_lepNuOpeningAngle, weight);
             }
+
+            // To be used as numerator in purity
+            if (isNueFlavourCCSignal)
+            {
+                nueFlavourSignalSelected += weight;
+                nueSelectionHistogramCollection.m_eNuHists.m_flavourSignalSelected->Fill(nu.m_eNu, weight);
+                nueSelectionHistogramCollection.m_qSqrHists.m_flavourSignalSelected->Fill(nu.m_qSqr, weight);
+                nueSelectionHistogramCollection.m_lepMomHists.m_flavourSignalSelected->Fill(nu.m_lepMom, weight);
+                nueSelectionHistogramCollection.m_lepNuOpeningAngleHists.m_flavourSignalSelected->Fill(nu.m_lepNuOpeningAngle, weight);
+            }
         }
         else
         {
-            if (!isNueCCSignal)
+            // Count nue background events rejected by nue selection
+            if (!isNueFlavourCCSignal)
             {
                 nueBackgroundRejected += weight;
                 nueSelectionHistogramCollection.m_eNuHists.m_backgroundRejected->Fill(nu.m_eNu, weight);
@@ -132,14 +153,27 @@ void PerformSelection(const NeutrinoEventVector &nuVector, NuSelectionHistogramC
                 nueSelectionHistogramCollection.m_lepNuOpeningAngleHists.m_backgroundRejected->Fill(nu.m_lepNuOpeningAngle, weight);
             }
 
-            if (PassNumuSelection(nu))
-            {    
+            // Can only measure background rejection on events that we actually get to reject - in my probably wrong opinion
+            if (!isNumuFlavourCCSignal)
+            {
+                numuBackground += weight;
+                numuSelectionHistogramCollection.m_eNuHists.m_background->Fill(nu.m_eNu, weight);
+                numuSelectionHistogramCollection.m_qSqrHists.m_background->Fill(nu.m_qSqr, weight);
+                numuSelectionHistogramCollection.m_lepMomHists.m_background->Fill(nu.m_lepMom, weight);
+                numuSelectionHistogramCollection.m_lepNuOpeningAngleHists.m_background->Fill(nu.m_lepNuOpeningAngle, weight);
+            }
+
+            const bool passNumuSelection(PERFORM_CVN_SELECTION ? PassCVNNumuSelection(nu) : PassNumuSelection(nu, IS_NEUTRINO));
+
+            if (passNumuSelection)
+            {
                 numuSelected += weight;
                 numuSelectionHistogramCollection.m_eNuHists.m_selected->Fill(nu.m_eNu, weight);
                 numuSelectionHistogramCollection.m_qSqrHists.m_selected->Fill(nu.m_qSqr, weight);
                 numuSelectionHistogramCollection.m_lepMomHists.m_selected->Fill(nu.m_lepMom, weight);
                 numuSelectionHistogramCollection.m_lepNuOpeningAngleHists.m_selected->Fill(nu.m_lepNuOpeningAngle, weight);
 
+                // To be used as numerator in efficiency
                 if (isNumuCCSignal)
                 {
                     numuSignalSelected += weight;
@@ -148,10 +182,20 @@ void PerformSelection(const NeutrinoEventVector &nuVector, NuSelectionHistogramC
                     numuSelectionHistogramCollection.m_lepMomHists.m_signalSelected->Fill(nu.m_lepMom, weight);
                     numuSelectionHistogramCollection.m_lepNuOpeningAngleHists.m_signalSelected->Fill(nu.m_lepNuOpeningAngle, weight);
                 }
+
+                // To be used as numerator in purity
+                if (isNumuFlavourCCSignal)
+                {
+                    numuFlavourSignalSelected += weight;
+                    numuSelectionHistogramCollection.m_eNuHists.m_flavourSignalSelected->Fill(nu.m_eNu, weight);
+                    numuSelectionHistogramCollection.m_qSqrHists.m_flavourSignalSelected->Fill(nu.m_qSqr, weight);
+                    numuSelectionHistogramCollection.m_lepMomHists.m_flavourSignalSelected->Fill(nu.m_lepMom, weight);
+                    numuSelectionHistogramCollection.m_lepNuOpeningAngleHists.m_flavourSignalSelected->Fill(nu.m_lepNuOpeningAngle, weight);
+                }
             }
             else
             {
-                if (!isNumuCCSignal)
+                if (!isNumuFlavourCCSignal)
                 {
                     numuBackgroundRejected += weight;
                     numuSelectionHistogramCollection.m_eNuHists.m_backgroundRejected->Fill(nu.m_eNu, weight);
@@ -163,12 +207,14 @@ void PerformSelection(const NeutrinoEventVector &nuVector, NuSelectionHistogramC
         }
     }
 
+    std::cout << "nueFlavourSignalSelected: " << nueFlavourSignalSelected << std::endl;
+    std::cout << "nueSelected: " << nueSelected << std::endl;
     const double nueEfficiency(nueSignalSelected / nueSignal);
-    const double nuePurity(nueSignalSelected / nueSelected);
+    const double nuePurity(nueFlavourSignalSelected / nueSelected);
     const double nueBackgroundRejection(nueBackgroundRejected / nueBackground);
 
     const double numuEfficiency(numuSignalSelected / numuSignal);
-    const double numuPurity(numuSignalSelected / numuSelected);
+    const double numuPurity(numuFlavourSignalSelected / numuSelected);
     const double numuBackgroundRejection(numuBackgroundRejected / numuBackground);
 
     std::cout << "nueEfficiency: " << nueEfficiency * 100.0 << "%" << std::endl;
@@ -194,7 +240,7 @@ void ProcessHistogramCollection(NuSelectionHistogramCollection &nuSelectionHisto
 
 void ProcessHistograms(NuSelectionHistograms &nuSelectionHistograms)
 {
-    // throw if not same binning
+    // throw if not same binning (TO DO)
     int nBins = nuSelectionHistograms.m_signal->GetXaxis()->GetNbins();
 
     // Efficiency
@@ -210,9 +256,9 @@ void ProcessHistograms(NuSelectionHistograms &nuSelectionHistograms)
     // Purity
     for (int i = -1; i < nBins; ++i)
     {
-        const double signalSelected(nuSelectionHistograms.m_signalSelected->GetBinContent(i + 1));
+        const double flavourSignalSelected(nuSelectionHistograms.m_flavourSignalSelected->GetBinContent(i + 1));
         const double selected(nuSelectionHistograms.m_selected->GetBinContent(i + 1));
-        const float purity(selected > 0.0 ? signalSelected / selected : 0.0);
+        const float purity(selected > 0.0 ? flavourSignalSelected / selected : 0.0);
         nuSelectionHistograms.m_purity->SetBinContent(i + 1, purity);
         nuSelectionHistograms.m_purity->SetBinError(i + 1, 0.0);
     }
@@ -237,7 +283,7 @@ void DrawHistogramCollection(NuSelectionHistogramCollection &nuSelectionHistogra
     TCanvas * c1 = new TCanvas(histPrefix.c_str(), histPrefix.c_str());
 
     TH1D * scaledEnergyDistribution = (TH1D*) nuSelectionHistogramCollection.m_eNuHists.m_signal->Clone();
-    scaledEnergyDistribution->Scale(10.0/scaledEnergyDistribution->GetEntries());
+    scaledEnergyDistribution->Scale(1.0/scaledEnergyDistribution->Integral());
 
     scaledEnergyDistribution->GetYaxis()->SetRangeUser(0.0, 1.0);
     scaledEnergyDistribution->SetTitle(";TrueNeutrinoEnergy;Arbritray Units");
@@ -264,6 +310,22 @@ void DrawHistogramCollection(NuSelectionHistogramCollection &nuSelectionHistogra
     legend->AddEntry(nuSelectionHistogramCollection.m_eNuHists.m_efficiency, "efficiency", "p");
     legend->AddEntry(nuSelectionHistogramCollection.m_eNuHists.m_backgroundRejection, "background rejection", "p");
     legend->Draw("same");
+}
+
+
+//------------------------------------------------------------------------------------------------------------------------------------------
+
+void WriteHistogramCollection(NuSelectionHistogramCollection &nuSelectionHistogramCollection, const std::string &histPrefix)
+{
+    nuSelectionHistogramCollection.m_eNuHists.m_signal->Write((histPrefix + "eNuHist_signal").c_str());
+    nuSelectionHistogramCollection.m_eNuHists.m_background->Write((histPrefix + "eNuHist_background").c_str());
+    nuSelectionHistogramCollection.m_eNuHists.m_selected->Write((histPrefix + "eNuHist_selected").c_str());
+    nuSelectionHistogramCollection.m_eNuHists.m_signalSelected->Write((histPrefix + "eNuHist_signalSelected").c_str());
+    nuSelectionHistogramCollection.m_eNuHists.m_flavourSignalSelected->Write((histPrefix + "eNuHist_flavourSignalSelected").c_str());
+    nuSelectionHistogramCollection.m_eNuHists.m_backgroundRejected->Write((histPrefix + "eNuHist_backgroundRejected").c_str());
+    nuSelectionHistogramCollection.m_eNuHists.m_efficiency->Write((histPrefix + "eNuHist_efficiency").c_str());
+    nuSelectionHistogramCollection.m_eNuHists.m_purity->Write((histPrefix + "eNuHist_purity").c_str());
+    nuSelectionHistogramCollection.m_eNuHists.m_backgroundRejection->Write((histPrefix + "eNuHist_backgroundRejection").c_str());
 }
 
 //------------------------------------------------------------------------------------------------------------------------------------------

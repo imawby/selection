@@ -5,24 +5,31 @@
 void TuneNueSelection(const std::string &inputFileName);
 void DrawSelectionHistograms(NeutrinoEventVector &nuEventVector_full);
 void FindSelectionCuts(const NeutrinoEventVector &nuEventVector_full);
-double ComputeSelectionMetric(const double nSignal, const TH1D *signal, const TH1D *background, const double pandrizzle, double &nueEfficiency, double &nuePurity);
-double ComputeSelectionMetric(const double nSignal, const TH2D *signal, const TH2D *background, const double pandrizzle, const double pandizzle, double &nueEfficiency, double &nuePurity);
-double ComputeSelectionMetric(const double nSignal, const TH2D *signal, const TH2D *background, const double intercept, const double gradient, double &nueEfficiency, double &nuePurity);
+double ComputeSelectionMetric(const double nSignal, const double cheatedSelectedSignal, const TH2D *signal, const TH2D *flavourSignal, const TH2D *background, 
+    const double pandrizzle, const double pandizzle, double &nueEfficiency, double &nuePurity);
 double GetOscWeight(const NeutrinoEvent &nu);
+//double ComputeSelectionMetric(const double nSignal, const TH1D *signal, const TH1D *background, const double pandrizzle, double &nueEfficiency, double &nuePurity);
+//double ComputeSelectionMetric(const double nSignal, const TH2D *signal, const TH2D *background, const double intercept, const double gradient, double &nueEfficiency, double &nuePurity);
+
+bool IS_NEUTRINO = false;
 
 void TuneNueSelection(const std::string &inputFileName_full)
 {
+    std::cout << "\033[31m" << "For " << "\033[33m" << (IS_NEUTRINO ? "F" : "R") << "\033[31m" << "HC" << "\033[0m" << std::endl;
+
     NeutrinoEventVector nuEventVector_full;
     ReadFile(inputFileName_full, nuEventVector_full);
 
-    //DrawSelectionHistograms(nuEventVector_full);    
-    FindSelectionCuts(nuEventVector_full);
+    DrawSelectionHistograms(nuEventVector_full);    
+    //FindSelectionCuts(nuEventVector_full);
 }
 
 //------------------------------------------------------------------------------------------------------------------------------------------
 
 void DrawSelectionHistograms(NeutrinoEventVector &nuEventVector_full)
 {
+    TFile * file = new TFile("DizzleScores.root", "CREATE");
+
     int pandrizzleBins = 25;
     double pandrizzleMin = -1.0, pandrizzleMax = 1.0;
     TH1D * pandrizzle_signal = new TH1D("pandrizzle_signal", "pandrizzle_signal", pandrizzleBins, pandrizzleMin, pandrizzleMax);
@@ -43,15 +50,15 @@ void DrawSelectionHistograms(NeutrinoEventVector &nuEventVector_full)
             continue;
 
         const double weight(nu.m_projectedPOTWeight * (nu.m_isNC ? 1.0 : GetOscWeight(nu)));
-        //const double weight(nu.m_projectedPOTWeight * GetOscWeight(nu)); <-- WRONG
 
-        if (IsNueCCSignal(nu))
+        if (IsNueCCSignal(nu, IS_NEUTRINO))
         {
             pandrizzle_signal->Fill(nu.m_selShowerPandrizzleScore, weight);
             pandizzle_signal->Fill(nu.m_selTrackPandizzleScore, weight);
             both_signal->Fill(nu.m_selShowerPandrizzleScore, nu.m_selTrackPandizzleScore, weight);
         }
-        else
+
+        if (!IsNueFlavourCCSignal(nu))
         {
             pandrizzle_background->Fill(nu.m_selShowerPandrizzleScore, weight);
             pandizzle_background->Fill(nu.m_selTrackPandizzleScore, weight);
@@ -99,177 +106,20 @@ void DrawSelectionHistograms(NeutrinoEventVector &nuEventVector_full)
     both_ratio->GetZaxis()->SetRangeUser(0.0, 2.0);
     both_ratio->SetTitle("Background / Signal;Pandrizzle Score;Pandizzle Score;");
     both_ratio->Draw("colz");
+
+    pandrizzle_signal->Write("pandrizzle_signal");
+    pandrizzle_background->Write("pandrizzle_background");
+    pandizzle_signal->Write("pandizzle_signal");
+    pandizzle_background->Write("pandizzle_background");
+
+    file->Close();
 }
-
-//------------------------------------------------------------------------------------------------------------------------------------------
-/*
-void FindSelectionCuts(const NeutrinoEventVector &nuEventVector_full)
-{
-    int interceptBins = 100;
-    double interceptMin = -1.0, interceptMax = 0.0;
-    double interceptStepSize = (interceptMax - interceptMin) / interceptBins;
-    double interceptCuts[interceptBins];
-
-    for (int i = 0; i < interceptBins; ++i)
-        interceptCuts[i] = interceptMin + (i * interceptStepSize);
-
-    int gradientBins = 100;
-    double gradientMin = 0.0, gradientMax = 10.0;
-    double gradientStepSize = (gradientMax - gradientMin) / gradientBins;
-    double gradientCuts[gradientBins];
-
-    for (int i = 0; i < gradientBins; ++i)
-        gradientCuts[i] = gradientMin + (i * gradientStepSize);
-
-    int pandrizzleBins = 100, pandizzleBins = 100;
-    double pandrizzleMin = -1.0, pandrizzleMax = 1.0, pandizzleMin = -1.0, pandizzleMax = 1.0;
-
-    TH2D * signal = new TH2D("signal", "signal", pandrizzleBins, pandrizzleMin, pandrizzleMax, pandizzleBins, pandizzleMin, pandizzleMax);
-    TH2D * background = new TH2D("background", "background", pandrizzleBins, pandrizzleMin, pandrizzleMax, pandizzleBins, pandizzleMin, pandizzleMax);
-
-    double nSignal(0);
-
-    // Select
-    for (const NeutrinoEvent &nu : nuEventVector_full)
-    {
-        bool isRecoInFV(IsRecoInFiducialVolume(nu));
-
-        const double weight(nu.m_projectedPOTWeight * (nu.m_isNC ? 1.0 : GetOscWeight(nu)));
-        //const double weight(nu.m_projectedPOTWeight * GetOscWeight(nu));
-
-        if (IsNueCCSignal(nu))
-        {
-            nSignal += weight;
-
-            if (isRecoInFV)
-                signal->Fill(nu.m_selShowerPandrizzleScore, nu.m_selTrackPandizzleScore, weight);
-        }
-        else
-        {
-            if (isRecoInFV)
-                background->Fill(nu.m_selShowerPandrizzleScore, nu.m_selTrackPandizzleScore, weight);
-        }
-    }
-
-    double bestIntercept(0.0), bestGradient(0.0);
-    double bestSelectionMetric(0.0);
-    unsigned int count(0);
-
-    TH2D * nueEfficiencyHist = new TH2D("efficiency", "efficiency", interceptBins, interceptMin, interceptMax, gradientBins, gradientMin, gradientMax);
-    TH2D * nuePurityHist = new TH2D("purity", "purity", interceptBins, interceptMin, interceptMax, gradientBins, gradientMin, gradientMax);
-    TH2D * selectionMetricHist = new TH2D("selectionMetric", "selectionMetric", interceptBins, interceptMin, interceptMax, gradientBins, gradientMin, gradientMax);
-
-    for (int interceptIndex = 0; interceptIndex < interceptBins; ++interceptIndex)
-    {
-        for (int gradientIndex = 0; gradientIndex < gradientBins; ++gradientIndex)
-        {
-            ++count;
-            std::cout << "Iteration: " << count << "/" << interceptBins * gradientBins << std::endl;
-
-            double nueEfficiency(0.0), nuePurity(0.0);
-
-            const double selectionMetric(ComputeSelectionMetric(nSignal, signal, background, interceptCuts[interceptIndex], gradientCuts[gradientIndex], nueEfficiency, nuePurity));
-
-            if (selectionMetric > bestSelectionMetric)
-            {
-                bestIntercept = interceptCuts[interceptIndex];
-                bestGradient = gradientCuts[gradientIndex];
-                bestSelectionMetric = selectionMetric;
-            }
-
-            nueEfficiencyHist->SetBinContent(nueEfficiencyHist->GetBin(interceptIndex + 1, gradientIndex + 1), nueEfficiency);
-            nuePurityHist->SetBinContent(nuePurityHist->GetBin(interceptIndex + 1, gradientIndex + 1), nuePurity);
-            selectionMetricHist->SetBinContent(selectionMetricHist->GetBin(interceptIndex + 1, gradientIndex + 1), selectionMetric);
-        }
-    }
-
-    TCanvas * c1 = new TCanvas ("efficiency canvas", "efficiency canvas");
-    nueEfficiencyHist->SetTitle("Efficiency;Intercept Score;Gradient Score");
-    nueEfficiencyHist->Draw("colz");
-
-    TCanvas * c2 = new TCanvas ("purity canvas", "purity canvas");
-    nuePurityHist->SetTitle("Purity;Intercept Score;Gradient Score");
-    nuePurityHist->Draw("colz");
-
-    TCanvas * c3 = new TCanvas ("selection metric canvas", "selection metric canvas");
-    selectionMetricHist->SetTitle("SelectionMetric;Intercept Score;Gradient Score");
-    selectionMetricHist->Draw("colz");
-
-    std::cout << "Best selection metric: " << bestSelectionMetric << " obtained with: " << std::endl;
-    std::cout << "Intercept cut: " << bestIntercept << std::endl;
-    std::cout << "Gradient cut: " << bestGradient << std::endl;
-}
-
-//------------------------------------------------------------------------------------------------------------------------------------------
-
-double ComputeSelectionMetric(const double nSignal, const TH2D *signal, const TH2D *background, const double intercept, const double gradient, 
-    double &nueEfficiency, double &nuePurity)
-{
-    double pandrizzleMin(-std::numeric_limits<int>::max()), pandrizzleMax(std::numeric_limits<int>::max());
-    int pandrizzleMinBin(std::numeric_limits<int>::max()), pandrizzleMaxBin(-std::numeric_limits<int>::max());
-
-    for (int pandrizzleIndex = 0; pandrizzleIndex <= (signal->GetNbinsX() + 1); pandrizzleIndex++)
-    {
-        const double binCenter = signal->GetXaxis()->GetBinCenter(pandrizzleIndex);
-
-        if (pandrizzleIndex > pandrizzleMaxBin)
-            pandrizzleMaxBin = pandrizzleIndex;
-
-        if (pandrizzleIndex < pandrizzleMinBin)
-            pandrizzleMinBin = pandrizzleIndex;
-    }
-
-    double pandizzleMin(-std::numeric_limits<int>::max()), pandizzleMax(std::numeric_limits<int>::max());
-    int pandizzleMinBin(std::numeric_limits<int>::max()), pandizzleMaxBin(-std::numeric_limits<int>::max());
-
-    for (int pandizzleIndex = 0; pandizzleIndex <= (signal->GetNbinsY() + 1); pandizzleIndex++)
-    {
-        const double binCenter = signal->GetXaxis()->GetBinCenter(pandizzleIndex);
-
-        if (pandizzleIndex > pandizzleMaxBin)
-            pandizzleMaxBin = pandizzleIndex;
-
-        if (pandizzleIndex < pandizzleMinBin)
-            pandizzleMinBin = pandizzleIndex;
-    }
-
-    const double cutPandrizzleMin((0.0 - intercept) / gradient);
-    const double cutPandizzleMax((gradient * 1.0) + intercept);
-
-    TCutG * cut = new TCutG("cut", 3);
-    cut->SetPoint(0, cutPandrizzleMin, 0.0);
-    cut->SetPoint(1, 1.0, 0.0);
-    cut->SetPoint(2, 1.0, cutPandizzleMax);
-
-    TH1D *signalProjection = signal->ProjectionX("frog", pandizzleMinBin, pandizzleMaxBin, "[cut]");
-    TH1D *backgroundProjection = background->ProjectionX("janet", pandizzleMinBin, pandizzleMaxBin, "[cut]");
-
-    double selectedSignal(0);
-
-    for (int pandrizzleIndex = pandrizzleMinBin; pandrizzleIndex <= pandrizzleMaxBin; ++pandrizzleIndex)
-        selectedSignal += signalProjection->GetBinContent(pandrizzleIndex);
-
-    double selectedBackground(0);
-
-    for (int pandrizzleIndex = pandrizzleMinBin; pandrizzleIndex <= pandrizzleMaxBin; ++pandrizzleIndex)
-        selectedBackground += backgroundProjection->GetBinContent(pandrizzleIndex);
-
-    double totalSelected = selectedSignal + selectedBackground;
-    nueEfficiency = selectedSignal / nSignal;
-    nuePurity = (totalSelected < std::numeric_limits<double>::epsilon()) ? 0.0 : selectedSignal / (selectedSignal + selectedBackground);
-
-    const double selectionMetric(nueEfficiency * nuePurity);
-
-    return selectionMetric;
-}
-*/
-//------------------------------------------------------------------------------------------------------------------------------------------
 
 //------------------------------------------------------------------------------------------------------------------------------------------
 
 void FindSelectionCuts(const NeutrinoEventVector &nuEventVector_full)
 {
-    int pandrizzleBins = 100;
+    int pandrizzleBins = 200;
     double pandrizzleMin = -1.0, pandrizzleMax = 1.0;
     double pandrizzleStepSize = (pandrizzleMax - pandrizzleMin) / pandrizzleBins;
     double pandrizzleCuts[pandrizzleBins];
@@ -277,7 +127,7 @@ void FindSelectionCuts(const NeutrinoEventVector &nuEventVector_full)
     for (int i = 0; i < pandrizzleBins; ++i)
         pandrizzleCuts[i] = pandrizzleMin + (i * pandrizzleStepSize);
 
-    int pandizzleBins = 100;
+    int pandizzleBins = 200;
     double pandizzleMin = -1.0, pandizzleMax = 1.0;
     double pandizzleStepSize = (pandizzleMax - pandizzleMin) / pandizzleBins;
     double pandizzleCuts[pandizzleBins];
@@ -286,34 +136,55 @@ void FindSelectionCuts(const NeutrinoEventVector &nuEventVector_full)
         pandizzleCuts[i] = pandizzleMin + (i * pandizzleStepSize);
 
     TH2D * signal = new TH2D("signal", "signal", pandrizzleBins, pandrizzleMin, pandrizzleMax, pandizzleBins, pandizzleMin, pandizzleMax);
+    TH2D * flavourSignal = new TH2D("flavourSignal", "flavourSignal", pandrizzleBins, pandrizzleMin, pandrizzleMax, pandizzleBins, pandizzleMin, pandizzleMax);
     TH2D * background = new TH2D("background", "background", pandrizzleBins, pandrizzleMin, pandrizzleMax, pandizzleBins, pandizzleMin, pandizzleMax);
 
-    double nSignal(0);
+    double nSignal(0.0);
+    double cheatedSelectedSignal(0.0);
 
     // Select
     for (const NeutrinoEvent &nu : nuEventVector_full)
     {
-        bool isRecoInFV(IsRecoInFiducialVolume(nu));
-
+        const bool isRecoInFV(IsRecoInFiducialVolume(nu));
         const double weight(nu.m_projectedPOTWeight * (nu.m_isNC ? 1.0 : GetOscWeight(nu)));
-        //const double weight(nu.m_projectedPOTWeight * GetOscWeight(nu));
 
-        if (IsNueCCSignal(nu))
+        if (IsNueCCSignal(nu, IS_NEUTRINO))
         {
             nSignal += weight;
 
             if (isRecoInFV)
                 signal->Fill(nu.m_selShowerPandrizzleScore, nu.m_selTrackPandizzleScore, weight);
         }
-        else
+
+        // remove CC anumu/numu
+        //bool select(!((std::abs(nu.m_nuPdg) == 14) && (!nu.m_isNC)));
+
+        // remove CC anutau/nutau
+        //bool select(!((std::abs(nu.m_nuPdg) == 16) && (!nu.m_isNC)));
+
+        // remove NC
+        //bool select(!nu.m_isNC);
+
+        // remove events that are actually photons.. 
+        //bool select(nu.m_selShowerTruePdg != 22);
+
+        //bool select(true);
+
+        if (isRecoInFV && select)
         {
-            if (isRecoInFV)
+            if (IsNueFlavourCCSignal(nu))
+            {
+                flavourSignal->Fill(nu.m_selShowerPandrizzleScore, nu.m_selTrackPandizzleScore, weight);
+            }
+            else
+            {
                 background->Fill(nu.m_selShowerPandrizzleScore, nu.m_selTrackPandizzleScore, weight);
+            }
         }
     }
 
     double bestPandrizzle(0.0), bestPandizzle(0.0);
-    double bestSelectionMetric(0.0);
+    double bestSelectionMetric(0.0), bestPurity(0.0), bestEfficiency(0.0);
     unsigned int count(0);
 
     TH2D * nueEfficiencyHist = new TH2D("efficiency", "efficiency", pandrizzleBins, pandrizzleMin, pandrizzleMax, pandizzleBins, pandizzleMin, pandizzleMax);
@@ -325,16 +196,20 @@ void FindSelectionCuts(const NeutrinoEventVector &nuEventVector_full)
         for (int pandizzleIndex = 0; pandizzleIndex < pandizzleBins; ++pandizzleIndex)
         {
             ++count;
-            std::cout << "Iteration: " << count << "/" << pandrizzleBins * pandizzleBins << std::endl;
+            if (count % 10000 == 0)
+                std::cout << "Iteration: " << count << "/" << pandrizzleBins * pandizzleBins << std::endl;
 
             double nueEfficiency(0.0), nuePurity(0.0);
 
-            const double selectionMetric(ComputeSelectionMetric(nSignal, signal, background, pandrizzleCuts[pandrizzleIndex], pandizzleCuts[pandizzleIndex], nueEfficiency, nuePurity));
+            const double selectionMetric(ComputeSelectionMetric(nSignal, cheatedSelectedSignal, signal, flavourSignal, background, 
+                pandrizzleCuts[pandrizzleIndex], pandizzleCuts[pandizzleIndex], nueEfficiency, nuePurity));
 
             if (selectionMetric > bestSelectionMetric)
             {
                 bestPandrizzle = pandrizzleCuts[pandrizzleIndex];
                 bestPandizzle = pandizzleCuts[pandizzleIndex];
+                bestPurity = nuePurity;
+                bestEfficiency = nueEfficiency;
                 bestSelectionMetric = selectionMetric;
             }
 
@@ -359,63 +234,74 @@ void FindSelectionCuts(const NeutrinoEventVector &nuEventVector_full)
     std::cout << "Best selection metric: " << bestSelectionMetric << " obtained with: " << std::endl;
     std::cout << "Pandrizzle cut: " << bestPandrizzle << std::endl;
     std::cout << "Pandizzle cut: " << bestPandizzle << std::endl;
+    std::cout << "efficiency: " << bestEfficiency << std::endl;
+    std::cout << "purity: " << bestPurity << std::endl;
+    std::cout << "nSignal: " << nSignal << std::endl;
 }
 
 //------------------------------------------------------------------------------------------------------------------------------------------
 
-double ComputeSelectionMetric(const double nSignal, const TH2D *signal, const TH2D *background, const double pandrizzle, const double pandizzle, 
-    double &nueEfficiency, double &nuePurity)
+double ComputeSelectionMetric(const double nSignal, const double cheatedSelectedSignal, const TH2D *signal, const TH2D *flavourSignal, 
+    const TH2D *background, const double pandrizzle, const double pandizzle, double &nueEfficiency, double &nuePurity)
 {
-    double pandrizzleMin(-std::numeric_limits<int>::max()), pandrizzleCut(pandrizzle), pandrizzleMax(std::numeric_limits<int>::max());
-    int pandrizzleMinBin(std::numeric_limits<int>::max()), pandrizzleCutBin(-std::numeric_limits<int>::max()), pandrizzleMaxBin(-std::numeric_limits<int>::max());
+    double pandrizzleCut(pandrizzle);
+    int pandrizzleMinBin(0), pandrizzleCutBin(-std::numeric_limits<int>::max()), pandrizzleMaxBin(signal->GetXaxis()->GetNbins());
 
-    for (int pandrizzleIndex = 0; pandrizzleIndex <= (signal->GetNbinsX() + 1); pandrizzleIndex++)
+    for (int pandrizzleIndex = 1; pandrizzleIndex <= signal->GetNbinsX(); pandrizzleIndex++)
     {
         const double binCenter = signal->GetXaxis()->GetBinCenter(pandrizzleIndex);
-
-        if (pandrizzleIndex > pandrizzleMaxBin)
-            pandrizzleMaxBin = pandrizzleIndex;
-
-        if (pandrizzleIndex < pandrizzleMinBin)
-            pandrizzleMinBin = pandrizzleIndex;
 
         if ((binCenter < pandrizzleCut) && (pandrizzleIndex > pandrizzleCutBin))
             pandrizzleCutBin = pandrizzleIndex;
     }
 
-    double pandizzleMin(-std::numeric_limits<int>::max()), pandizzleCut(pandizzle), pandizzleMax(std::numeric_limits<int>::max());
-    int pandizzleMinBin(std::numeric_limits<int>::max()), pandizzleCutBin(-std::numeric_limits<int>::max()), pandizzleMaxBin(-std::numeric_limits<int>::max());
+    if (pandrizzleCutBin < 0)
+    {
+        std::cout << "1 couldn't find cut bin" << std::endl;
+        return 0.0;
+    }
+
+    double pandizzleCut(pandizzle);
+    int pandizzleMinBin(0), pandizzleCutBin(-std::numeric_limits<int>::max()), pandizzleMaxBin(signal->GetYaxis()->GetNbins());
 
     for (int pandizzleIndex = 0; pandizzleIndex <= (signal->GetNbinsY() + 1); pandizzleIndex++)
     {
         const double binCenter = signal->GetXaxis()->GetBinCenter(pandizzleIndex);
 
-        if (pandizzleIndex > pandizzleMaxBin)
-            pandizzleMaxBin = pandizzleIndex;
-
-        if (pandizzleIndex < pandizzleMinBin)
-            pandizzleMinBin = pandizzleIndex;
-
         if ((binCenter < pandizzleCut) && (pandizzleIndex > pandizzleCutBin))
             pandizzleCutBin = pandizzleIndex;
     }
 
+    if (pandizzleCutBin < 0)
+    {
+        std::cout << "2 couldn't find cut bin" << std::endl;
+        return 0.0;
+    }
+
+
     TH1D *signalProjection = signal->ProjectionX("frog", pandizzleMinBin, pandizzleCutBin, "o");
+    TH1D *flavourSignalProjection = flavourSignal->ProjectionX("log", pandizzleMinBin, pandizzleCutBin, "o");
     TH1D *backgroundProjection = background->ProjectionX("janet", pandizzleMinBin, pandizzleCutBin, "o");
 
-    double selectedSignal(0);
+    double selectedSignal(0.0);
 
     for (int pandrizzleIndex = (pandrizzleCutBin + 1); pandrizzleIndex <= pandrizzleMaxBin; ++pandrizzleIndex)
         selectedSignal += signalProjection->GetBinContent(pandrizzleIndex);
+    
+    double selectedFlavourSignal(0.0);
 
-    double selectedBackground(0);
+    for (int pandrizzleIndex = (pandrizzleCutBin + 1); pandrizzleIndex <= pandrizzleMaxBin; ++pandrizzleIndex)
+        selectedFlavourSignal += flavourSignalProjection->GetBinContent(pandrizzleIndex);
+
+    double selectedBackground(0.0);
 
     for (int pandrizzleIndex = (pandrizzleCutBin + 1); pandrizzleIndex <= pandrizzleMaxBin; ++pandrizzleIndex)
         selectedBackground += backgroundProjection->GetBinContent(pandrizzleIndex);
 
-    double totalSelected = selectedSignal + selectedBackground;
     nueEfficiency = selectedSignal / nSignal;
-    nuePurity = (totalSelected < std::numeric_limits<double>::epsilon()) ? 0.0 : selectedSignal / (selectedSignal + selectedBackground);
+
+    const double totalSelected = selectedFlavourSignal + selectedBackground;
+    nuePurity = (totalSelected < std::numeric_limits<double>::epsilon()) ? 0.0 : selectedFlavourSignal / totalSelected;
 
     const double selectionMetric(nueEfficiency * nuePurity);
 
@@ -563,4 +449,172 @@ double GetOscWeight(const NeutrinoEvent &nu)
     return weight;
 }
 
+//------------------------------------------------------------------------------------------------------------------------------------------
+
+
+
+
+//------------------------------------------------------------------------------------------------------------------------------------------
+/*
+void FindSelectionCuts(const NeutrinoEventVector &nuEventVector_full)
+{
+    int interceptBins = 100;
+    double interceptMin = -1.0, interceptMax = 0.0;
+    double interceptStepSize = (interceptMax - interceptMin) / interceptBins;
+    double interceptCuts[interceptBins];
+
+    for (int i = 0; i < interceptBins; ++i)
+        interceptCuts[i] = interceptMin + (i * interceptStepSize);
+
+    int gradientBins = 100;
+    double gradientMin = 0.0, gradientMax = 10.0;
+    double gradientStepSize = (gradientMax - gradientMin) / gradientBins;
+    double gradientCuts[gradientBins];
+
+    for (int i = 0; i < gradientBins; ++i)
+        gradientCuts[i] = gradientMin + (i * gradientStepSize);
+
+    int pandrizzleBins = 100, pandizzleBins = 100;
+    double pandrizzleMin = -1.0, pandrizzleMax = 1.0, pandizzleMin = -1.0, pandizzleMax = 1.0;
+
+    TH2D * signal = new TH2D("signal", "signal", pandrizzleBins, pandrizzleMin, pandrizzleMax, pandizzleBins, pandizzleMin, pandizzleMax);
+    TH2D * background = new TH2D("background", "background", pandrizzleBins, pandrizzleMin, pandrizzleMax, pandizzleBins, pandizzleMin, pandizzleMax);
+
+    double nSignal(0);
+
+    // Select
+    for (const NeutrinoEvent &nu : nuEventVector_full)
+    {
+        bool isRecoInFV(IsRecoInFiducialVolume(nu));
+
+        const double weight(nu.m_projectedPOTWeight * (nu.m_isNC ? 1.0 : GetOscWeight(nu)));
+        //const double weight(nu.m_projectedPOTWeight * GetOscWeight(nu));
+
+        if (IsNueCCSignal(nu))
+        {
+            nSignal += weight;
+
+            if (isRecoInFV)
+                signal->Fill(nu.m_selShowerPandrizzleScore, nu.m_selTrackPandizzleScore, weight);
+        }
+
+        if (!IsNueFlavourCCSignal(nu))
+        {
+            if (isRecoInFV)
+                background->Fill(nu.m_selShowerPandrizzleScore, nu.m_selTrackPandizzleScore, weight);
+        }
+    }
+
+    double bestIntercept(0.0), bestGradient(0.0);
+    double bestSelectionMetric(0.0);
+    unsigned int count(0);
+
+    TH2D * nueEfficiencyHist = new TH2D("efficiency", "efficiency", interceptBins, interceptMin, interceptMax, gradientBins, gradientMin, gradientMax);
+    TH2D * nuePurityHist = new TH2D("purity", "purity", interceptBins, interceptMin, interceptMax, gradientBins, gradientMin, gradientMax);
+    TH2D * selectionMetricHist = new TH2D("selectionMetric", "selectionMetric", interceptBins, interceptMin, interceptMax, gradientBins, gradientMin, gradientMax);
+
+    for (int interceptIndex = 0; interceptIndex < interceptBins; ++interceptIndex)
+    {
+        for (int gradientIndex = 0; gradientIndex < gradientBins; ++gradientIndex)
+        {
+            ++count;
+            std::cout << "Iteration: " << count << "/" << interceptBins * gradientBins << std::endl;
+
+            double nueEfficiency(0.0), nuePurity(0.0);
+
+            const double selectionMetric(ComputeSelectionMetric(nSignal, signal, background, interceptCuts[interceptIndex], gradientCuts[gradientIndex], nueEfficiency, nuePurity));
+
+            if (selectionMetric > bestSelectionMetric)
+            {
+                bestIntercept = interceptCuts[interceptIndex];
+                bestGradient = gradientCuts[gradientIndex];
+                bestSelectionMetric = selectionMetric;
+            }
+
+            nueEfficiencyHist->SetBinContent(nueEfficiencyHist->GetBin(interceptIndex + 1, gradientIndex + 1), nueEfficiency);
+            nuePurityHist->SetBinContent(nuePurityHist->GetBin(interceptIndex + 1, gradientIndex + 1), nuePurity);
+            selectionMetricHist->SetBinContent(selectionMetricHist->GetBin(interceptIndex + 1, gradientIndex + 1), selectionMetric);
+        }
+    }
+
+    TCanvas * c1 = new TCanvas ("efficiency canvas", "efficiency canvas");
+    nueEfficiencyHist->SetTitle("Efficiency;Intercept Score;Gradient Score");
+    nueEfficiencyHist->Draw("colz");
+
+    TCanvas * c2 = new TCanvas ("purity canvas", "purity canvas");
+    nuePurityHist->SetTitle("Purity;Intercept Score;Gradient Score");
+    nuePurityHist->Draw("colz");
+
+    TCanvas * c3 = new TCanvas ("selection metric canvas", "selection metric canvas");
+    selectionMetricHist->SetTitle("SelectionMetric;Intercept Score;Gradient Score");
+    selectionMetricHist->Draw("colz");
+
+    std::cout << "Best selection metric: " << bestSelectionMetric << " obtained with: " << std::endl;
+    std::cout << "Intercept cut: " << bestIntercept << std::endl;
+    std::cout << "Gradient cut: " << bestGradient << std::endl;
+}
+
+//------------------------------------------------------------------------------------------------------------------------------------------
+
+double ComputeSelectionMetric(const double nSignal, const TH2D *signal, const TH2D *background, const double intercept, const double gradient, 
+    double &nueEfficiency, double &nuePurity)
+{
+    double pandrizzleMin(-std::numeric_limits<int>::max()), pandrizzleMax(std::numeric_limits<int>::max());
+    int pandrizzleMinBin(std::numeric_limits<int>::max()), pandrizzleMaxBin(-std::numeric_limits<int>::max());
+
+    for (int pandrizzleIndex = 0; pandrizzleIndex <= (signal->GetNbinsX() + 1); pandrizzleIndex++)
+    {
+        const double binCenter = signal->GetXaxis()->GetBinCenter(pandrizzleIndex);
+
+        if (pandrizzleIndex > pandrizzleMaxBin)
+            pandrizzleMaxBin = pandrizzleIndex;
+
+        if (pandrizzleIndex < pandrizzleMinBin)
+            pandrizzleMinBin = pandrizzleIndex;
+    }
+
+    double pandizzleMin(-std::numeric_limits<int>::max()), pandizzleMax(std::numeric_limits<int>::max());
+    int pandizzleMinBin(std::numeric_limits<int>::max()), pandizzleMaxBin(-std::numeric_limits<int>::max());
+
+    for (int pandizzleIndex = 0; pandizzleIndex <= (signal->GetNbinsY() + 1); pandizzleIndex++)
+    {
+        const double binCenter = signal->GetXaxis()->GetBinCenter(pandizzleIndex);
+
+        if (pandizzleIndex > pandizzleMaxBin)
+            pandizzleMaxBin = pandizzleIndex;
+
+        if (pandizzleIndex < pandizzleMinBin)
+            pandizzleMinBin = pandizzleIndex;
+    }
+
+    const double cutPandrizzleMin((0.0 - intercept) / gradient);
+    const double cutPandizzleMax((gradient * 1.0) + intercept);
+
+    TCutG * cut = new TCutG("cut", 3);
+    cut->SetPoint(0, cutPandrizzleMin, 0.0);
+    cut->SetPoint(1, 1.0, 0.0);
+    cut->SetPoint(2, 1.0, cutPandizzleMax);
+
+    TH1D *signalProjection = signal->ProjectionX("frog", pandizzleMinBin, pandizzleMaxBin, "[cut]");
+    TH1D *backgroundProjection = background->ProjectionX("janet", pandizzleMinBin, pandizzleMaxBin, "[cut]");
+
+    double selectedSignal(0);
+
+    for (int pandrizzleIndex = pandrizzleMinBin; pandrizzleIndex <= pandrizzleMaxBin; ++pandrizzleIndex)
+        selectedSignal += signalProjection->GetBinContent(pandrizzleIndex);
+
+    double selectedBackground(0);
+
+    for (int pandrizzleIndex = pandrizzleMinBin; pandrizzleIndex <= pandrizzleMaxBin; ++pandrizzleIndex)
+        selectedBackground += backgroundProjection->GetBinContent(pandrizzleIndex);
+
+    double totalSelected = selectedSignal + selectedBackground;
+    nueEfficiency = selectedSignal / nSignal;
+    nuePurity = (totalSelected < std::numeric_limits<double>::epsilon()) ? 0.0 : selectedSignal / (selectedSignal + selectedBackground);
+
+    const double selectionMetric(nueEfficiency * nuePurity);
+
+    return selectionMetric;
+}
+*/
 //------------------------------------------------------------------------------------------------------------------------------------------
