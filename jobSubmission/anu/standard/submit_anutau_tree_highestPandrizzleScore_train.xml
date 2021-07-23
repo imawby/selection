@@ -2,10 +2,10 @@
 <!DOCTYPE project [
 <!ENTITY file_type "montecarlo">
 <!ENTITY run_type "physics">
-<!ENTITY release "v09_15_00">
+<!ENTITY release "v09_22_03">
 <!ENTITY qualifiers "e19:prof">
-<!ENTITY name "CCNuSel_nutau">
-<!ENTITY path "/pnfs/dune/persistent/users/imawby">
+<!ENTITY name "CCNuSel_tree_highestPandrizzleScore_train">
+<!ENTITY path "/pnfs/dune/persistent/users/imawby/anutau_reco/train">
 ]>
 <project name="&name;">
 
@@ -26,19 +26,24 @@
 <larsoft>
   <tag>&release;</tag>
   <qual>e19:prof</qual>
-  <local>/pnfs/dune/resilient/users/imawby/PandrizzleParams.tar</local>
+  <local>/pnfs/dune/resilient/users/imawby/selectionLarsoft.tar</local>
 </larsoft>
+
+  <check>0</check>
+  <copy>0</copy>
 
 <!-- Project stages -->
 <stage name="ana">
   <schema>root</schema>
-  <inputdef>prodgenie_nutau_dune10kt_1x2x6_mcc11_lbl_reco</inputdef>
+  <jobsub> -l '+SingularityImage="/cvmfs/singularity.opensciencegrid.org/fermilab/fnal-wn-sl7:latest"' --append_condor_requirements='(TARGET.HAS_SINGULARITY=?=true)' </jobsub>
+  <inputlist>/pnfs/dune/persistent/users/imawby/anutau_reco/train/inputFiles_anutau.list</inputlist>
+  <datatier>reconstructed</datatier>
   <initsource>/dune/app/users/imawby/selection/jobSubmission/setup.sh</initsource>
-  <fcl>/dune/app/users/imawby/selection/fcl/standard_ccnuseletion.fcl</fcl>
+  <fcl>/dune/app/users/imawby/selection/fcl/MCC11/anu/standard/selectiontree_highestpandrizzlescore.fcl</fcl>
   <outdir>&path;/&name;_ana</outdir>
   <workdir>&path;/&name;_work_ana</workdir>
-  <jobsub>--memory=5000 --expected-lifetime=1h --disk=20GB</jobsub>
-  <numjobs>1000</numjobs>
+  <jobsub>--memory=5000 --expected-lifetime=1h --disk=10GB</jobsub>
+  <numjobs>200</numjobs>
   <maxfilesperjob>1</maxfilesperjob>
 </stage>
 

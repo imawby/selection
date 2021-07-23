@@ -2,10 +2,10 @@
 <!DOCTYPE project [
 <!ENTITY file_type "montecarlo">
 <!ENTITY run_type "physics">
-<!ENTITY release "v09_15_00">
+<!ENTITY release "v09_22_03">
 <!ENTITY qualifiers "e19:prof">
-<!ENTITY name "CCNuSel_nue_dom">
-<!ENTITY path "/pnfs/dune/persistent/users/imawby">
+<!ENTITY name "CCNuSel_train">
+<!ENTITY path "/pnfs/dune/persistent/users/imawby/anutau_reco/cheatPandoraFull/train">
 ]>
 <project name="&name;">
 
@@ -14,7 +14,7 @@
 
 <!-- Project size -->
 <!--numevents>10000000</numevents-->
-<numevents>1000000000</numevents>
+<numevents>100</numevents>
 
 <!-- Operating System -->
 <os>SL7</os>
@@ -26,19 +26,24 @@
 <larsoft>
   <tag>&release;</tag>
   <qual>e19:prof</qual>
-  <local>/pnfs/dune/resilient/users/imawby/PandrizzleParams.tar</local>
+  <local>/pnfs/dune/resilient/users/imawby/selectionLarsoft.tar</local>
 </larsoft>
+
+  <check>0</check>
+  <copy>0</copy>
 
 <!-- Project stages -->
 <stage name="ana">
   <schema>root</schema>
-  <inputlist>/dune/data/users/dbrailsf/oscillation/ccnu/xrootfiles_nue_A_recoopflux.list</inputlist>
+  <jobsub> -l '+SingularityImage="/cvmfs/singularity.opensciencegrid.org/fermilab/fnal-wn-sl7:latest"' --append_condor_requirements='(TARGET.HAS_SINGULARITY=?=true)' </jobsub>
+  <inputlist>/pnfs/dune/persistent/users/imawby/anutau_reco/cheatPandoraFull/train/inputFiles_anutau.list</inputlist>
+  <datatier>reconstructed</datatier>
   <initsource>/dune/app/users/imawby/selection/jobSubmission/setup.sh</initsource>
-  <fcl>/dune/app/users/imawby/larsoft/srcs/dunetpc/dune/FDSelections/standard_ccnuseletion.fcl</fcl>
+  <fcl>/dune/app/users/imawby/selection/fcl/MCC11/anu/cheatPandoraFull/selectiontree_cheatPandoraFull.fcl</fcl>
   <outdir>&path;/&name;_ana</outdir>
   <workdir>&path;/&name;_work_ana</workdir>
-  <jobsub>--memory=5000 --expected-lifetime=1h --disk=20GB</jobsub>
-  <numjobs>99</numjobs>
+  <jobsub>--memory=5000 --expected-lifetime=3h --disk=10GB</jobsub>
+  <numjobs>200</numjobs>
   <maxfilesperjob>1</maxfilesperjob>
 </stage>
 

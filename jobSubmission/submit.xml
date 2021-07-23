@@ -4,7 +4,7 @@
 <!ENTITY run_type "physics">
 <!ENTITY release "v09_15_00">
 <!ENTITY qualifiers "e19:prof">
-<!ENTITY name "CCNuSel_nutau_dom">
+<!ENTITY name "CCNuSel_nu">
 <!ENTITY path "/pnfs/dune/persistent/users/imawby">
 ]>
 <project name="&name;">
@@ -13,8 +13,7 @@
 <group>dune</group>
 
 <!-- Project size -->
-<!--numevents>10000000</numevents-->
-<numevents>1000000000</numevents>
+<numevents>10000000</numevents>
 
 <!-- Operating System -->
 <os>SL7</os>
@@ -26,20 +25,23 @@
 <larsoft>
   <tag>&release;</tag>
   <qual>e19:prof</qual>
-  <local>/pnfs/dune/resilient/users/imawby/PandrizzleParams.tar</local>
+  <local>/pnfs/dune/resilient/users/imawby/CCSel.tar</local>
 </larsoft>
 
 <!-- Project stages -->
 <stage name="ana">
   <schema>root</schema>
-  <inputlist>/dune/data/users/dbrailsf/oscillation/ccnu/xrootfiles_nutau_A_recoopflux.list</inputlist>
+  <inputfile>/pnfs/dune/persistent/users/imawby/nu_dune10kt_1x2x6_13422341_0_20181123T225730_gen_g4_detsim_reco.root</inputfile>
+  <!--inputfile>/dune/app/users/imawby/nu_dune10kt_1x2x6_13009312_0_20181104T221530_gen_g4_detsim_reco.root</inputfile-->
+  <!--inputlist>/dune/data/users/imawby/MC11/nue.list</inputlist-->
+  <!--inputdef>DEFINITION_NAME</inputdef-->
   <initsource>/dune/app/users/imawby/selection/jobSubmission/setup.sh</initsource>
-  <fcl>/dune/app/users/imawby/larsoft/srcs/dunetpc/dune/FDSelections/standard_ccnuseletion.fcl</fcl>
+  <fcl>/dune/app/users/imawby/selection/fcl/standard_ccnuseletion.fcl</fcl>
   <outdir>&path;/&name;_ana</outdir>
   <workdir>&path;/&name;_work_ana</workdir>
   <jobsub>--memory=5000 --expected-lifetime=1h --disk=20GB</jobsub>
-  <numjobs>69</numjobs>
-  <maxfilesperjob>1</maxfilesperjob>
+  <numjobs>1</numjobs>
+  <!--maxfilesperjob>1</maxfilesperjob-->
 </stage>
 
 <!-- file type -->

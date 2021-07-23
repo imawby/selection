@@ -20,7 +20,7 @@
 <os>SL7</os>
 
 <!-- Batch resources -->
-<resource>DEDICATED,OPPORTUNISTIC</resource>
+<resource>DEDICATED,OPPORTUNISTIC,OFFSITE</resource>
 
 <!-- Larsoft information -->
 <larsoft>
@@ -42,8 +42,8 @@
   <fcl>/dune/app/users/imawby/selection/fcl/MCC11/nu/cheatPandoraFull/selectiontree_cheatPandoraFull.fcl</fcl>
   <outdir>&path;/&name;_ana</outdir>
   <workdir>&path;/&name;_work_ana</workdir>
-  <jobsub>--memory=5000 --expected-lifetime=3h --disk=10GB</jobsub>
-  <numjobs>481</numjobs>
+  <jobsub>--memory=1000 --expected-lifetime=3h --disk=1GB</jobsub>
+  <numjobs>294</numjobs>
   <maxfilesperjob>1</maxfilesperjob>
 </stage>
 

@@ -2,10 +2,10 @@
 <!DOCTYPE project [
 <!ENTITY file_type "montecarlo">
 <!ENTITY run_type "physics">
-<!ENTITY release "v09_15_00">
+<!ENTITY release "v09_22_03">
 <!ENTITY qualifiers "e19:prof">
-<!ENTITY name "CCNuSel_nu_dom">
-<!ENTITY path "/pnfs/dune/persistent/users/imawby">
+<!ENTITY name "CCNuSel_reco">
+<!ENTITY path "/pnfs/dune/persistent/users/imawby/anue_reco/cheatPandoraVertex">
 ]>
 <project name="&name;">
 
@@ -14,7 +14,7 @@
 
 <!-- Project size -->
 <!--numevents>10000000</numevents-->
-<numevents>1000000000</numevents>
+<numevents>100</numevents>
 
 <!-- Operating System -->
 <os>SL7</os>
@@ -26,19 +26,19 @@
 <larsoft>
   <tag>&release;</tag>
   <qual>e19:prof</qual>
-  <local>/pnfs/dune/resilient/users/imawby/PandrizzleParams.tar</local>
+  <local>/pnfs/dune/resilient/users/imawby/selectionLarsoftTemp.tar</local>
 </larsoft>
 
 <!-- Project stages -->
-<stage name="ana">
+<stage name="reco">
   <schema>root</schema>
-  <inputlist>/dune/data/users/dbrailsf/oscillation/ccnu/xrootfiles_nu_A_recoopflux.list</inputlist>
+  <inputdef>imawby_prodgenie_anue_dune10kt_1x2x6_mcc11_lbl_reco_20210609144344_limit_500</inputdef>
   <initsource>/dune/app/users/imawby/selection/jobSubmission/setup.sh</initsource>
-  <fcl>/dune/app/users/imawby/larsoft/srcs/dunetpc/dune/FDSelections/standard_ccnuseletion.fcl</fcl>
-  <outdir>&path;/&name;_ana</outdir>
-  <workdir>&path;/&name;_work_ana</workdir>
-  <jobsub>--memory=5000 --expected-lifetime=1h --disk=20GB</jobsub>
-  <numjobs>71</numjobs>
+  <fcl>/dune/app/users/imawby/selection/fcl/MCC11/anu/cheatPandoraVertex/selectionreco_cheatPandoraVertex.fcl</fcl>
+  <outdir>&path;/&name;_reco</outdir>
+  <workdir>&path;/&name;_work_reco</workdir>
+  <jobsub>--memory=10000 --expected-lifetime=6h --disk=10GB</jobsub>
+  <numjobs>500</numjobs>
   <maxfilesperjob>1</maxfilesperjob>
 </stage>
 

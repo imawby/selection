@@ -1,0 +1,51 @@
+<?xml version="1.0"?>
+<!DOCTYPE project [
+<!ENTITY file_type "montecarlo">
+<!ENTITY run_type "physics">
+<!ENTITY release "v09_22_03">
+<!ENTITY qualifiers "e19:prof">
+<!ENTITY name "CCNuSel_reco">
+<!ENTITY path "/pnfs/dune/persistent/users/imawby/anue_reco/cheatPandoraMuon">
+]>
+<project name="&name;">
+
+<!-- Group -->
+<group>dune</group>
+
+<!-- Project size -->
+<!--numevents>10000000</numevents-->
+<numevents>100</numevents>
+
+<!-- Operating System -->
+<os>SL7</os>
+
+<!-- Batch resources -->
+<resource>DEDICATED,OPPORTUNISTIC</resource>
+
+<!-- Larsoft information -->
+<larsoft>
+  <tag>&release;</tag>
+  <qual>e19:prof</qual>
+  <local>/pnfs/dune/resilient/users/imawby/selectionLarsoft.tar</local>
+</larsoft>
+
+<!-- Project stages -->
+<stage name="reco">
+  <schema>root</schema>
+  <inputdef>imawby_prodgenie_anue_dune10kt_1x2x6_mcc11_lbl_reco_20210609144344_limit_500</inputdef>
+  <initsource>/dune/app/users/imawby/selection/jobSubmission/setup.sh</initsource>
+  <fcl>/dune/app/users/imawby/selection/fcl/MCC11/anu/cheatPandoraMuon/selectionreco_cheatPandoraMuon.fcl</fcl>
+  <outdir>&path;/&name;_reco</outdir>
+  <workdir>&path;/&name;_work_reco</workdir>
+  <jobsub>--memory=10000 --expected-lifetime=6h --disk=10GB</jobsub>
+  <numjobs>500</numjobs>
+  <maxfilesperjob>1</maxfilesperjob>
+</stage>
+
+<!-- file type -->
+<filetype>&file_type;</filetype>
+
+<!-- run type -->
+<runtype>&run_type;</runtype>
+
+</project>

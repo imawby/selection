@@ -32,6 +32,7 @@
 <!-- Project stages -->
 <stage name="reco">
   <schema>root</schema>
+  <jobsub> -l '+SingularityImage="/cvmfs/singularity.opensciencegrid.org/fermilab/fnal-wn-sl7:latest"' --append_condor_requirements='(TARGET.HAS_SINGULARITY=?=true)' </jobsub>
   <inputdef>imawby_prodgenie_nu_dune10kt_1x2x6_mcc11_lbl_reco_20210513150642_limit_500</inputdef>
   <initsource>/dune/app/users/imawby/selection/jobSubmission/setup.sh</initsource>
   <fcl>/dune/app/users/imawby/selection/fcl/MCC11/nu/cheatPandoraLepton/selectionreco_cheatPandoraLepton.fcl</fcl>

@@ -4,7 +4,7 @@
 <!ENTITY run_type "physics">
 <!ENTITY release "v09_22_03">
 <!ENTITY qualifiers "e19:prof">
-<!ENTITY name "CCNuSel_tree_highestPandrizzleScore">
+<!ENTITY name "CCNuSel_tree_highestPandrizzleScore_subset">
 <!ENTITY path "/pnfs/dune/persistent/users/imawby/nutau_reco">
 ]>
 <project name="&name;">
@@ -43,7 +43,7 @@
   <outdir>&path;/&name;_ana</outdir>
   <workdir>&path;/&name;_work_ana</workdir>
   <jobsub>--memory=5000 --expected-lifetime=1h --disk=10GB</jobsub>
-  <numjobs>480</numjobs>
+  <numjobs>280</numjobs>
   <maxfilesperjob>1</maxfilesperjob>
 </stage>
 
