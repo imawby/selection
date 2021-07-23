@@ -11,7 +11,7 @@ double GetOscWeight(const NeutrinoEvent &nu);
 //double ComputeSelectionMetric(const double nSignal, const TH1D *signal, const TH1D *background, const double pandrizzle, double &nueEfficiency, double &nuePurity);
 //double ComputeSelectionMetric(const double nSignal, const TH2D *signal, const TH2D *background, const double intercept, const double gradient, double &nueEfficiency, double &nuePurity);
 
-bool IS_NEUTRINO = false;
+bool IS_NEUTRINO = true;
 
 void TuneNueSelection(const std::string &inputFileName_full)
 {
@@ -120,7 +120,7 @@ void DrawSelectionHistograms(NeutrinoEventVector &nuEventVector_full)
 void FindSelectionCuts(const NeutrinoEventVector &nuEventVector_full)
 {
     int pandrizzleBins = 200;
-    double pandrizzleMin = -1.0, pandrizzleMax = 1.0;
+    double pandrizzleMin = -10000, pandrizzleMax = 1.0;
     double pandrizzleStepSize = (pandrizzleMax - pandrizzleMin) / pandrizzleBins;
     double pandrizzleCuts[pandrizzleBins];
 
@@ -168,7 +168,7 @@ void FindSelectionCuts(const NeutrinoEventVector &nuEventVector_full)
         // remove events that are actually photons.. 
         //bool select(nu.m_selShowerTruePdg != 22);
 
-        //bool select(true);
+        bool select(true);
 
         if (isRecoInFV && select)
         {

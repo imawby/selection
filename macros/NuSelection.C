@@ -3,9 +3,9 @@
 #include "Selection.C"
 #include "NuSelection.h"
 
-bool PERFORM_CVN_SELECTION = true;
+bool PERFORM_CVN_SELECTION = false;
 bool PERFORM_OLD_NUE_SELECTION = false;
-bool IS_NEUTRINO = true;
+bool IS_NEUTRINO = false;
 
 void NuSelection(const std::string &inputFileName)
 {

@@ -11,7 +11,7 @@ double GetOscWeight(const NeutrinoEvent &nu, const double deltaCP);
 double CalculateMinLogLikelihood(TH1D *& energyDistribution_zero, TH1D *& energyDistribution_pi, TH1D *& energyDistribution);
 double CalculateLogLikelihood(const double observed, const double expected);
 
-const bool PERFORM_CVN_SELECTION = false;
+const bool PERFORM_CVN_SELECTION = true;
 const bool CHEAT_ENERGY = false;
 
 void DeltaCP(const std::string &inputFileName_full)
@@ -198,7 +198,8 @@ void PlotSensitivity(const NeutrinoEventVector &nuEventVector_full, const Neutri
     //combinedEnergyDistribution_pi->Add(numuEnergyDistribution_pi);
     //combinedEnergyDistribution_pi->Add(anumuEnergyDistribution_pi);
 
-    double totalCoveredRangeSum_1(0.0), totalCoveredRangeSum_2(0.0), totalCoveredRangeSum_3(0.0), totalCoveredRangeSum_4(0.0), totalCoveredRangeSum_5(0.0);
+    double totalCoveredRangeSum_1(0.0), totalCoveredRangeSum_2(0.0), totalCoveredRangeSum_3(0.0), totalCoveredRangeSum_4(0.0), totalCoveredRangeSum_5(0.0), totalCoveredRangeSum_6(0.0),
+        totalCoveredRangeSum_7(0.0), totalCoveredRangeSum_8(0.0);
     double totalCoveredRangeSum = 0.0, totalCoveredRangeCombined = 0.0;
     double previousSigSum = -std::numeric_limits<double>::max(), previousSigCombined = -std::numeric_limits<double>::max();
 
@@ -284,6 +285,15 @@ void PlotSensitivity(const NeutrinoEventVector &nuEventVector_full, const Neutri
         if ((sigSum[i] > 5.0) && (previousSigSum > 5.0))
             totalCoveredRangeSum_5 += (2.0 * TMath::Pi()) / nDeltaCPValues;
 
+        if ((sigSum[i] > 6.0) && (previousSigSum > 6.0))
+            totalCoveredRangeSum_6 += (2.0 * TMath::Pi()) / nDeltaCPValues;
+
+        if ((sigSum[i] > 7.0) && (previousSigSum > 7.0))
+            totalCoveredRangeSum_7 += (2.0 * TMath::Pi()) / nDeltaCPValues;
+
+        if ((sigSum[i] > 8.0) && (previousSigSum > 8.0))
+            totalCoveredRangeSum_8 += (2.0 * TMath::Pi()) / nDeltaCPValues;
+
         //if ((sigCombined[i] > 3.0) && (previousSigCombined > 3.0))
         //totalCoveredRangeCombined += (2.0 * TMath::Pi()) / nDeltaCPValues;
 
@@ -299,6 +309,9 @@ void PlotSensitivity(const NeutrinoEventVector &nuEventVector_full, const Neutri
     std::cout << "3 sigma covered range (sum): " << totalCoveredRangeSum_3 / (2.0 * TMath::Pi()) << std::endl;
     std::cout << "4 sigma covered range (sum): " << totalCoveredRangeSum_4 / (2.0 * TMath::Pi()) << std::endl;
     std::cout << "5 sigma covered range (sum): " << totalCoveredRangeSum_5 / (2.0 * TMath::Pi()) << std::endl;
+    std::cout << "6 sigma covered range (sum): " << totalCoveredRangeSum_6 / (2.0 * TMath::Pi()) << std::endl;
+    std::cout << "7 sigma covered range (sum): " << totalCoveredRangeSum_7 / (2.0 * TMath::Pi()) << std::endl;
+    std::cout << "8 sigma covered range (sum): " << totalCoveredRangeSum_8 / (2.0 * TMath::Pi()) << std::endl;
 
     //std::cout << "covered range (combined): " << totalCoveredRangeCombined / (2.0 * TMath::Pi()) << std::endl;
     
@@ -403,6 +416,9 @@ void PlotSensitivity(const NeutrinoEventVector &nuEventVector_full, const Neutri
     sensitivityNumu->Write("sensitivityNumu");
     sensitivityAnumu->Write("sensitivityAnumu");
     sensitivitySum->Write("sensitivitySum");
+    sensitivityNu->Write("sensitivityFHC");
+    sensitivityAnu->Write("sensitivityRHC");
+
     outputFile->Close();
 }
 

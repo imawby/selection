@@ -64,9 +64,11 @@ void ReadFile(const std::string &inputFileName, NeutrinoEventVector &nuEventVect
     tree->SetBranchAddress("CVNResultNutau", &nu.m_cvnResultNutau);
     tree->SetBranchAddress("CVNResultNC", &nu.m_cvnResultNC);
 
+
+    std::cout << "Reading neutrino events... " << std::endl;
     for (Int_t i = 0; i < tree->GetEntries(); ++i)
     {
-        std::cout << "i: " << i << std::endl;
+        //std::cout << "i: " << i << std::endl;
         tree->GetEntry(i);
         nuEventVector.push_back(nu);
     }
