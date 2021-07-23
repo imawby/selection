@@ -10,7 +10,7 @@
 
 #include "tools_dune.fcl"
 
-process_name: SelectionRecoCheatPandoraFull2
+process_name: SelectionRecoCheatPandoraElectron
 
 services:
 {
@@ -43,10 +43,9 @@ physics:
 {
  producers:
  {
-   pandoraSel:             @local::dunefd_pandora
-   pandoraTrackSel:        @local::dune_pandoraTrackCreation
-   pandoraShowerSel:       @local::dune_pandoraModularShowerCreation
-   pandoraShowerSelCheat:  @local::dune_pandoraModularShowerCreation_cheatAll
+   pandoraSel:           @local::dunefd_pandora
+   pandoraTrackSel:      @local::dune_pandoraTrackCreation
+   pandoraShowerSel:     @local::dune_pandoraModularShowerCreation
 
    warwickPIDSel: {
         
@@ -54,23 +53,6 @@ physics:
      HitLabel:		    "linecluster"
      TrackLabel:		"pandoraTrackSel"
      ShowerLabel:       "pandoraShowerSel"
-     SpacePointLabel:	"pandoraSel"
-
-     CalorimetryAlg:     @local::dune10kt_calorimetryalgmc
-     MVAMethods:		[ "electron","muon","photon","pich","proton" ]
-     WeightFiles:		[ "mvapid_weights/electron_all_BDT.weights.xml",
-                          "mvapid_weights/muon_all_BDT.weights.xml",
-                          "mvapid_weights/photon_all_BDT.weights.xml",
-                          "mvapid_weights/pich_all_BDT.weights.xml",
-                          "mvapid_weights/proton_all_BDT.weights.xml" ]
-   }
-
-   warwickPIDSelCheat: {
-        
-     module_type:		"MVAPID"
-     HitLabel:		    "linecluster"
-     TrackLabel:		"pandoraTrackSel"
-     ShowerLabel:       "pandoraShowerSelCheat"
      SpacePointLabel:	"pandoraSel"
 
      CalorimetryAlg:     @local::dune10kt_calorimetryalgmc
@@ -95,7 +77,7 @@ physics:
    cvnevalSel: @local::standard_cvnevaluator
  }
 
- prod:     [ pandoraSel, pandoraShowerSel, pandoraShowerSelCheat, pandoraTrackSel, pandoraCaloSel, pandoraPIDSel, warwickPIDSel, warwickPIDSelCheat, cvnmapSel, cvnevalSel ]  
+ prod:     [ pandoraSel, pandoraShowerSel, pandoraTrackSel, pandoraCaloSel, pandoraPIDSel, warwickPIDSel, cvnmapSel, cvnevalSel ]  
  stream1:  [ out1 ]
 
  # Change root file
@@ -121,17 +103,14 @@ outputs:
 # Pandora
 physics.producers.pandoraSel.GeantModuleLabel:                               "largeant"
 physics.producers.pandoraSel.HitFinderModuleLabel:                           "linecluster"
-physics.producers.pandoraSel.ConfigFile:                                     "PandoraSettings_Cheat.xml"
-physics.producers.pandoraSel.EnableMCParticles: true
+physics.producers.pandoraSel.ConfigFile:                                     "PandoraSettings_Master_DUNEFD_CheatElectronPlusVertex.xml"
+physics.producers.pandoraSel.EnableMCParticles:                               true
 
 # PandoraTrack
 physics.producers.pandoraTrackSel.PFParticleLabel:                           "pandoraSel"
 
 # PandoraShower
 physics.producers.pandoraShowerSel.PFParticleLabel:                          "pandoraSel"
-
-# PandoraShower
-physics.producers.pandoraShowerSelCheat.PFParticleLabel:                     "pandoraSel"
 
 # Pandora Calo (needed for input for pandoraPID)
 physics.producers.pandoraCaloSel.TrackModuleLabel:                           "pandoraTrackSel"

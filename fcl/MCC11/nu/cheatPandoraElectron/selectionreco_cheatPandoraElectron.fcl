@@ -10,7 +10,7 @@
 
 #include "tools_dune.fcl"
 
-process_name: SelectionRecoCheatPandoraFull2
+process_name: SelectionRecoCheatPandoraElectron
 
 services:
 {
@@ -121,8 +121,8 @@ outputs:
 # Pandora
 physics.producers.pandoraSel.GeantModuleLabel:                               "largeant"
 physics.producers.pandoraSel.HitFinderModuleLabel:                           "linecluster"
-physics.producers.pandoraSel.ConfigFile:                                     "PandoraSettings_Cheat.xml"
-physics.producers.pandoraSel.EnableMCParticles: true
+physics.producers.pandoraSel.ConfigFile:                                     "PandoraSettings_Master_DUNEFD_CheatElectron.xml"
+physics.producers.pandoraSel.EnableMCParticles:                               true
 
 # PandoraTrack
 physics.producers.pandoraTrackSel.PFParticleLabel:                           "pandoraSel"
@@ -130,7 +130,7 @@ physics.producers.pandoraTrackSel.PFParticleLabel:                           "pa
 # PandoraShower
 physics.producers.pandoraShowerSel.PFParticleLabel:                          "pandoraSel"
 
-# PandoraShower
+# PandoraShowerCheat
 physics.producers.pandoraShowerSelCheat.PFParticleLabel:                     "pandoraSel"
 
 # Pandora Calo (needed for input for pandoraPID)
