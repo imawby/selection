@@ -2,8 +2,9 @@
 #include "Selection.C"
 #include "Signal.C"
 
+void DeltaCP(const std::string &inputFileName_FHC, const std::string &outputFileName);
 void DeltaCP(const std::string &inputFileName_full, const std::string &antiInputFileName_full, const std::string &outputFile);
-void PlotSensitivity(const NeutrinoEventVector &nuEventVector_full);
+void PlotSensitivity(const NeutrinoEventVector &nuEventVector_full, const std::string &outputFileName);
 void PlotSensitivity(const NeutrinoEventVector &nuEventVector_full, const NeutrinoEventVector &anuEventVector_full, const std::string &outputFile);
 void FillNueEnergyDistribution(const NeutrinoEventVector &nuEventVector_full, const double deltaCP, TH1D *& nueEnergyDistribution, bool isNu);
 void FillNumuEnergyDistribution(const NeutrinoEventVector &nuEventVector_full, const double deltaCP, TH1D *& energyDistribution, bool isNu);
@@ -11,15 +12,151 @@ double GetOscWeight(const NeutrinoEvent &nu, const double deltaCP);
 double CalculateMinLogLikelihood(TH1D *& energyDistribution_zero, TH1D *& energyDistribution_pi, TH1D *& energyDistribution);
 double CalculateLogLikelihood(const double observed, const double expected);
 
-const bool PERFORM_CVN_SELECTION = true;
+const bool PERFORM_CVN_SELECTION = false;
 const bool CHEAT_ENERGY = false;
+const bool IS_JAM_SELECTION = true;
 
-void DeltaCP(const std::string &inputFileName_full)
+const int N_ENERGY_BINS = 16;
+const double MIN_ENERGY = 0.0, MAX_ENERGY = 8.0;
+const double ENEGRY_BIN_LIMITS[17] = {0.25, 0.5, 0.75, 1.0, 1.25, 1.5, 1.75, 2.0, 2.25, 2.50, 2.75, 3.0, 3.25, 3.5, 3.75, 4.0, 8.0};
+
+void DeltaCP(const std::string &inputFileName_FHC, const std::string &outputFileName)
 {
-    NeutrinoEventVector nuEventVector_full;
-    ReadFile(inputFileName_full, nuEventVector_full);
+    std::cout << "\033[31m" << "Performing " << "\033[33m" << (PERFORM_CVN_SELECTION ? "CVN " : "DIZZLE ") << "\033[31m" << "selection" << "\033[0m" << std::endl;
+    std::cout << "\033[31m" << "Using " << "\033[33m" << (CHEAT_ENERGY ? "TRUE " : "RECO ") << "\033[31m" << "energy to fill spectra" << "\033[0m" << std::endl;
+    std::cout << "\033[33m" << "ARE YOU SURE THAT THIS IS A FHC FILE?" << "\033[0m" << std::endl;
+    std::cout << "\033[31m" << "Performing " << "\033[33m" << (IS_JAM_SELECTION ? "JAM-ENHANCED PANDRIZZE " : "PANDRIZZLE ") << "\033[31m" << "selection" << "\033[0m" << std::endl;
 
-    PlotSensitivity(nuEventVector_full);
+    NeutrinoEventVector nuEventVector_FHC;
+    ReadFile(inputFileName_FHC, nuEventVector_FHC);
+
+    PlotSensitivity(nuEventVector_FHC, outputFileName);
+}
+
+//------------------------------------------------------------------------------------------------------------------------------------------
+
+void PlotSensitivity(const NeutrinoEventVector &nuEventVector_full, const std::string &outputFileName)
+{
+    TFile * outputFile = new TFile(outputFileName.c_str(), "CREATE");
+
+    int nDeltaCPValues = 200;
+    double minFactoredDeltaCP = -1.0, maxFactoredDeltaCP = 1.0;
+    double factoredDeltaCP[nDeltaCPValues];
+
+    double sigNue[nDeltaCPValues], sigNumu[nDeltaCPValues];
+    double sigNuSum[nDeltaCPValues];
+
+    // deltaCP = 0 histograms
+    //TH1D * nueEnergyDistribution_zero = new TH1D("nueEnergyDistribution_zero", "nueEnergyDistribution_zero", N_ENERGY_BINS, MIN_ENERGY, MAX_ENERGY);
+    TH1D * nueEnergyDistribution_zero = new TH1D("nueEnergyDistribution_zero", "nueEnergyDistribution_zero", N_ENERGY_BINS, ENEGRY_BIN_LIMITS);
+    FillNueEnergyDistribution(nuEventVector_full, 0.0, nueEnergyDistribution_zero, true);
+
+    //TH1D * numuEnergyDistribution_zero = new TH1D("numuEnergyDistribution_zero", "numuEnergyDistribution_zero", N_ENERGY_BINS, MIN_ENERGY, MAX_ENERGY);
+    TH1D * numuEnergyDistribution_zero = new TH1D("numuEnergyDistribution_zero", "numuEnergyDistribution_zero", N_ENERGY_BINS, ENEGRY_BIN_LIMITS);
+    FillNumuEnergyDistribution(nuEventVector_full, 0.0, numuEnergyDistribution_zero, true);
+
+    // deltaCP = pi histograms
+    //TH1D * nueEnergyDistribution_pi = new TH1D("nueEnergyDistribution_pi", "nueEnergyDistribution_pi", N_ENERGY_BINS, MIN_ENERGY, MAX_ENERGY);
+    TH1D * nueEnergyDistribution_pi = new TH1D("nueEnergyDistribution_pi", "nueEnergyDistribution_pi", N_ENERGY_BINS, ENEGRY_BIN_LIMITS);
+    FillNueEnergyDistribution(nuEventVector_full, TMath::Pi(), nueEnergyDistribution_pi, true);
+
+    //TH1D * numuEnergyDistribution_pi = new TH1D("numuEnergyDistribution_pi", "numuEnergyDistribution_pi", N_ENERGY_BINS, MIN_ENERGY, MAX_ENERGY);
+    TH1D * numuEnergyDistribution_pi = new TH1D("numuEnergyDistribution_pi", "numuEnergyDistribution_pi", N_ENERGY_BINS, ENEGRY_BIN_LIMITS);
+    FillNumuEnergyDistribution(nuEventVector_full, TMath::Pi(), numuEnergyDistribution_pi, true);
+
+    double totalCoveredRangeSum_1(0.0), totalCoveredRangeSum_2(0.0), totalCoveredRangeSum_3(0.0), totalCoveredRangeSum_4(0.0), totalCoveredRangeSum_5(0.0), totalCoveredRangeSum_6(0.0),
+        totalCoveredRangeSum_7(0.0), totalCoveredRangeSum_8(0.0);
+    double totalCoveredRangeSum = 0.0;
+    double previousSigSum = -std::numeric_limits<double>::max();
+
+    for (int i = 0; i < nDeltaCPValues; ++i)
+    {
+        factoredDeltaCP[i] = minFactoredDeltaCP + ((maxFactoredDeltaCP - minFactoredDeltaCP) * i / nDeltaCPValues);
+        double deltaCP = factoredDeltaCP[i] * TMath::Pi();
+
+        //TH1D * nueEnergyDistribution = new TH1D(("nueEnergyDistribution" + to_string(deltaCP)).c_str(), ("nueEnergyDistribution" + to_string(deltaCP)).c_str(), N_ENERGY_BINS, MIN_ENERGY, MAX_ENERGY);
+        TH1D * nueEnergyDistribution = new TH1D(("nueEnergyDistribution" + to_string(deltaCP)).c_str(), ("nueEnergyDistribution" + to_string(deltaCP)).c_str(), N_ENERGY_BINS, ENEGRY_BIN_LIMITS);
+        FillNueEnergyDistribution(nuEventVector_full, deltaCP, nueEnergyDistribution, true);
+
+        //TH1D * numuEnergyDistribution = new TH1D(("numuEnergyDistribution" + to_string(deltaCP)).c_str(), ("numuEnergyDistribution" + to_string(deltaCP)).c_str(), N_ENERGY_BINS, MIN_ENERGY, MAX_ENERGY);
+        TH1D * numuEnergyDistribution = new TH1D(("numuEnergyDistribution" + to_string(deltaCP)).c_str(), ("numuEnergyDistribution" + to_string(deltaCP)).c_str(), N_ENERGY_BINS, ENEGRY_BIN_LIMITS);
+        FillNumuEnergyDistribution(nuEventVector_full, deltaCP, numuEnergyDistribution, true);
+
+        const double nueLogLikelihood(CalculateMinLogLikelihood(nueEnergyDistribution_zero, nueEnergyDistribution_pi, nueEnergyDistribution));
+        const double numuLogLikelihood(CalculateMinLogLikelihood(numuEnergyDistribution_zero, numuEnergyDistribution_pi, numuEnergyDistribution));
+        const double logLikelihoodSum(nueLogLikelihood + numuLogLikelihood);
+
+        if (logLikelihoodSum < 0.0)
+        {
+            std::cout << "ISOBEL YOU HAVE A NEGATIVE LOGLIKELIHOOD SUM" << std::endl;
+            throw;
+        }
+
+        sigNue[i] = std::sqrt(2.0 * nueLogLikelihood);
+        sigNumu[i] = std::sqrt(2.0 * numuLogLikelihood);
+        sigNuSum[i] = std::sqrt(2.0 * logLikelihoodSum);
+
+        if ((sigNuSum[i] > 1.0) && (previousSigSum > 1.0))
+            totalCoveredRangeSum_1 += (2.0 * TMath::Pi()) / nDeltaCPValues;
+
+        if ((sigNuSum[i] > 2.0) && (previousSigSum > 2.0))
+            totalCoveredRangeSum_2 += (2.0 * TMath::Pi()) / nDeltaCPValues;
+
+        if ((sigNuSum[i] > 3.0) && (previousSigSum > 3.0))
+            totalCoveredRangeSum_3 += (2.0 * TMath::Pi()) / nDeltaCPValues;
+
+        if ((sigNuSum[i] > 4.0) && (previousSigSum > 4.0))
+            totalCoveredRangeSum_4 += (2.0 * TMath::Pi()) / nDeltaCPValues;
+
+        if ((sigNuSum[i] > 5.0) && (previousSigSum > 5.0))
+            totalCoveredRangeSum_5 += (2.0 * TMath::Pi()) / nDeltaCPValues;
+
+        if ((sigNuSum[i] > 6.0) && (previousSigSum > 6.0))
+            totalCoveredRangeSum_6 += (2.0 * TMath::Pi()) / nDeltaCPValues;
+
+        if ((sigNuSum[i] > 7.0) && (previousSigSum > 7.0))
+            totalCoveredRangeSum_7 += (2.0 * TMath::Pi()) / nDeltaCPValues;
+
+        if ((sigNuSum[i] > 8.0) && (previousSigSum > 8.0))
+            totalCoveredRangeSum_8 += (2.0 * TMath::Pi()) / nDeltaCPValues;
+
+        std::cout << "delta CP: " << deltaCP << ", sensitivity (sum): " << sigNuSum[i] << std::endl;
+
+        previousSigSum = sigNuSum[i];
+    }
+
+    std::cout << "1 sigma covered range (sum): " << totalCoveredRangeSum_1 / (2.0 * TMath::Pi()) << std::endl;
+    std::cout << "2 sigma covered range (sum): " << totalCoveredRangeSum_2 / (2.0 * TMath::Pi()) << std::endl;
+    std::cout << "3 sigma covered range (sum): " << totalCoveredRangeSum_3 / (2.0 * TMath::Pi()) << std::endl;
+    std::cout << "4 sigma covered range (sum): " << totalCoveredRangeSum_4 / (2.0 * TMath::Pi()) << std::endl;
+    std::cout << "5 sigma covered range (sum): " << totalCoveredRangeSum_5 / (2.0 * TMath::Pi()) << std::endl;
+    std::cout << "6 sigma covered range (sum): " << totalCoveredRangeSum_6 / (2.0 * TMath::Pi()) << std::endl;
+    std::cout << "7 sigma covered range (sum): " << totalCoveredRangeSum_7 / (2.0 * TMath::Pi()) << std::endl;
+    std::cout << "8 sigma covered range (sum): " << totalCoveredRangeSum_8 / (2.0 * TMath::Pi()) << std::endl;
+
+    TCanvas * cSensitivityNu = new TCanvas("cSensitivityNu", "cSensitivityNu");
+    cSensitivityNu->Divide(3, 1);
+    cSensitivityNu->cd(1);
+    TGraph * sensitivityNue = new TGraph(nDeltaCPValues, factoredDeltaCP, sigNue);
+    sensitivityNue->SetLineColor(kBlue);
+    sensitivityNue->SetTitle("Nue;delta_{CP}/#pi; #sqrt{#chi^{2}}");
+    sensitivityNue->Draw("AC*");
+    cSensitivityNu->cd(2);
+    TGraph * sensitivityNumu = new TGraph(nDeltaCPValues, factoredDeltaCP, sigNumu);
+    sensitivityNumu->SetLineColor(kBlue);
+    sensitivityNumu->SetTitle("Numu;delta_{CP}/#pi; #sqrt{#chi^{2}}");
+    sensitivityNumu->Draw("AC*");
+    cSensitivityNu->cd(3);
+    TGraph * sensitivityNu = new TGraph(nDeltaCPValues, factoredDeltaCP, sigNuSum);
+    sensitivityNu->SetLineColor(kBlue);
+    sensitivityNu->SetTitle("Nue + Numu;delta_{CP}/#pi; #sqrt{#chi^{2}}");
+    sensitivityNu->Draw("AC*");
+
+    sensitivityNue->Write("sensitivityNue");
+    sensitivityNumu->Write("sensitivityNumu");
+    sensitivityNu->Write("sensitivityFHC");
+
+    outputFile->Close();
 }
 
 //------------------------------------------------------------------------------------------------------------------------------------------
@@ -36,95 +173,6 @@ void DeltaCP(const std::string &inputFileName_full, const std::string &antiInput
     ReadFile(antiInputFileName_full, anuEventVector_full);
 
     PlotSensitivity(nuEventVector_full, anuEventVector_full, outputFile);
-}
-
-//------------------------------------------------------------------------------------------------------------------------------------------
-// THIS IS JUST FOR FHC!!!
-void PlotSensitivity(const NeutrinoEventVector &nuEventVector_full)
-{
-    int nDeltaCPValues = 50;
-    double minFactoredDeltaCP = -1.0, maxFactoredDeltaCP = 1.0;
-    double factoredDeltaCP[nDeltaCPValues], sigNue[nDeltaCPValues], sigNumu[nDeltaCPValues], sigTotal[nDeltaCPValues];
-
-    int nEnergyBins = 40;
-    double minEnergy = 0.0, maxEnergy = 10.0;
-
-    // No CP violation Histograms
-    TH1D * nueEnergyDistribution_zero = new TH1D("nueEnergyDistribution_zero", "nueEnergyDistribution_zero", nEnergyBins, minEnergy, maxEnergy);
-    FillNueEnergyDistribution(nuEventVector_full, 0.0, nueEnergyDistribution_zero, true);
-
-    TH1D * nueEnergyDistribution_pi = new TH1D("nueEnergyDistribution_pi", "nueEnergyDistribution_pi", nEnergyBins, minEnergy, maxEnergy);
-    FillNueEnergyDistribution(nuEventVector_full, TMath::Pi(), nueEnergyDistribution_pi, true);
-
-    TH1D * numuEnergyDistribution_zero = new TH1D("numuEnergyDistribution_zero", "numuEnergyDistribution_zero", nEnergyBins, minEnergy, maxEnergy);
-    FillNumuEnergyDistribution(nuEventVector_full, 0.0, numuEnergyDistribution_zero, true);
-
-    TH1D * numuEnergyDistribution_pi = new TH1D("numuEnergyDistribution_pi", "numuEnergyDistribution_pi", nEnergyBins, minEnergy, maxEnergy);
-    FillNumuEnergyDistribution(nuEventVector_full, TMath::Pi(), numuEnergyDistribution_pi, true);
-
-    double totalCoveredRange = 0;
-    double previousSigTotal = -std::numeric_limits<double>::max();
-
-    for (int i = 1; i < numuEnergyDistribution_zero->GetXaxis()->GetNbins(); ++i)
-        std::cout << "i: " << i << ", entries: " << numuEnergyDistribution_zero->GetBinContent(i) << std::endl;
-    
-    for (int i = 0; i < nDeltaCPValues; ++i)
-    {
-        factoredDeltaCP[i] = minFactoredDeltaCP + ((maxFactoredDeltaCP - minFactoredDeltaCP) * i / nDeltaCPValues);
-        double deltaCP = factoredDeltaCP[i] * TMath::Pi();
-
-        std::cout << "deltaCP: " << deltaCP << std::endl;
-
-        TH1D * nueEnergyDistribution = new TH1D(("nueEnergyDistribution" + to_string(deltaCP)).c_str(), ("nueEnergyDistribution" + to_string(deltaCP)).c_str(), nEnergyBins, minEnergy, maxEnergy);
-        FillNueEnergyDistribution(nuEventVector_full, deltaCP, nueEnergyDistribution, true);
-
-        TH1D * numuEnergyDistribution = new TH1D(("numuEnergyDistribution" + to_string(deltaCP)).c_str(), ("numuEnergyDistribution" + to_string(deltaCP)).c_str(), nEnergyBins, minEnergy, maxEnergy);
-        FillNumuEnergyDistribution(nuEventVector_full, deltaCP, numuEnergyDistribution, true);
-
-        const double nueLogLikelihood(CalculateMinLogLikelihood(nueEnergyDistribution_zero, nueEnergyDistribution_pi, nueEnergyDistribution));
-        const double numuLogLikelihood(CalculateMinLogLikelihood(numuEnergyDistribution_zero, numuEnergyDistribution_pi, numuEnergyDistribution));
-        const double logLikelihoodSum(nueLogLikelihood + numuLogLikelihood);
-
-        if (logLikelihoodSum < 0.0)
-        {
-            std::cout << "ISOBEL YOU HAVE A NEGATIVE LOGLIKELIHOOD SUM" << std::endl;
-            throw;
-        }
-
-        sigNue[i] = std::sqrt(2.0 * nueLogLikelihood);
-        sigNumu[i] = std::sqrt(2.0 * numuLogLikelihood);
-        sigTotal[i] = std::sqrt(2.0 * logLikelihoodSum);
-
-        if ((sigTotal[i] > 3.0) && (previousSigTotal > 3.0))
-            totalCoveredRange += (2.0 * TMath::Pi()) / nDeltaCPValues;
-
-        std::cout << "delta CP: " << deltaCP << ", sensitivity: " << sigTotal[i] << std::endl;
-
-        previousSigTotal = sigTotal[i];
-    }
-
-    std::cout << "covered range: " << totalCoveredRange / (2.0 * TMath::Pi()) << std::endl;
-
-    TCanvas * test = new TCanvas("test", "test");
-    numuEnergyDistribution_zero->Draw("hist");
-
-    TCanvas * cSensitivityNue = new TCanvas("sensitivityNue", "sensitivityNue");
-    TGraph * sensitivityNue = new TGraph(nDeltaCPValues, factoredDeltaCP, sigNue);
-    sensitivityNue->SetLineColor(kBlue);
-    sensitivityNue->SetTitle("Nue;delta_{CP}/#pi; #sqrt{#chi^{2}}");
-    sensitivityNue->Draw("AC*");
-
-    TCanvas * cSensitivityNumu = new TCanvas("sensitivityNumu", "sensitivityNumu");
-    TGraph * sensitivityNumu = new TGraph(nDeltaCPValues, factoredDeltaCP, sigNumu);
-    sensitivityNumu->SetLineColor(kBlue);
-    sensitivityNumu->SetTitle("Numu;delta_{CP}/#pi; #sqrt{#chi^{2}}");
-    sensitivityNumu->Draw("AC*");
-
-    TCanvas * cSensitivityTotal = new TCanvas("sensitivityTotal", "sensitivityTotal");
-    TGraph * sensitivityTotal = new TGraph(nDeltaCPValues, factoredDeltaCP, sigTotal);
-    sensitivityTotal->SetLineColor(kBlue);
-    sensitivityTotal->SetTitle("Total;delta_{CP}/#pi; #sqrt{#chi^{2}}");
-    sensitivityTotal->Draw("AC*");
 }
 
 //------------------------------------------------------------------------------------------------------------------------------------------
@@ -147,20 +195,21 @@ void PlotSensitivity(const NeutrinoEventVector &nuEventVector_full, const Neutri
 
     double sigSum[nDeltaCPValues], sigCombined[nDeltaCPValues];
 
-    int nEnergyBins = 40;
-    double minEnergy = 0.0, maxEnergy = 10.0;
-
     // deltaCP = 0 histograms
-    TH1D * nueEnergyDistribution_zero = new TH1D("nueEnergyDistribution_zero", "nueEnergyDistribution_zero", nEnergyBins, minEnergy, maxEnergy);
+    //TH1D * nueEnergyDistribution_zero = new TH1D("nueEnergyDistribution_zero", "nueEnergyDistribution_zero", N_ENERGY_BINS, MIN_ENERGY, MAX_ENERGY);
+    TH1D * nueEnergyDistribution_zero = new TH1D("nueEnergyDistribution_zero", "nueEnergyDistribution_zero", N_ENERGY_BINS, ENEGRY_BIN_LIMITS);
     FillNueEnergyDistribution(nuEventVector_full, 0.0, nueEnergyDistribution_zero, true);
 
-    TH1D * anueEnergyDistribution_zero = new TH1D("anueEnergyDistribution_zero", "anueEnergyDistribution_zero", nEnergyBins, minEnergy, maxEnergy);
+    //TH1D * anueEnergyDistribution_zero = new TH1D("anueEnergyDistribution_zero", "anueEnergyDistribution_zero", N_ENERGY_BINS, MIN_ENERGY, MAX_ENERGY);
+    TH1D * anueEnergyDistribution_zero = new TH1D("anueEnergyDistribution_zero", "anueEnergyDistribution_zero", N_ENERGY_BINS, ENEGRY_BIN_LIMITS);
     FillNueEnergyDistribution(anuEventVector_full, 0.0, anueEnergyDistribution_zero, false);
 
-    TH1D * numuEnergyDistribution_zero = new TH1D("numuEnergyDistribution_zero", "numuEnergyDistribution_zero", nEnergyBins, minEnergy, maxEnergy);
+    //TH1D * numuEnergyDistribution_zero = new TH1D("numuEnergyDistribution_zero", "numuEnergyDistribution_zero", N_ENERGY_BINS, MIN_ENERGY, MAX_ENERGY);
+    TH1D * numuEnergyDistribution_zero = new TH1D("numuEnergyDistribution_zero", "numuEnergyDistribution_zero", N_ENERGY_BINS, ENEGRY_BIN_LIMITS);
     FillNumuEnergyDistribution(nuEventVector_full, 0.0, numuEnergyDistribution_zero, true);
 
-    TH1D * anumuEnergyDistribution_zero = new TH1D("anumuEnergyDistribution_zero", "anumuEnergyDistribution_zero", nEnergyBins, minEnergy, maxEnergy);
+    //TH1D * anumuEnergyDistribution_zero = new TH1D("anumuEnergyDistribution_zero", "anumuEnergyDistribution_zero", N_ENERGY_BINS, MIN_ENERGY, MAX_ENERGY);
+    TH1D * anumuEnergyDistribution_zero = new TH1D("anumuEnergyDistribution_zero", "anumuEnergyDistribution_zero", N_ENERGY_BINS, ENEGRY_BIN_LIMITS);
     FillNumuEnergyDistribution(anuEventVector_full, 0.0, anumuEnergyDistribution_zero, false);
 
     //TH1D * combinedNueEnergyDistribution_zero = (TH1D*)nueEnergyDistribution_zero->Clone();
@@ -175,16 +224,20 @@ void PlotSensitivity(const NeutrinoEventVector &nuEventVector_full, const Neutri
     //combinedEnergyDistribution_zero->Add(anumuEnergyDistribution_zero);
 
     // deltaCP = pi histograms
-    TH1D * nueEnergyDistribution_pi = new TH1D("nueEnergyDistribution_pi", "nueEnergyDistribution_pi", nEnergyBins, minEnergy, maxEnergy);
+    //TH1D * nueEnergyDistribution_pi = new TH1D("nueEnergyDistribution_pi", "nueEnergyDistribution_pi", N_ENERGY_BINS, MIN_ENERGY, MAX_ENERGY);
+    TH1D * nueEnergyDistribution_pi = new TH1D("nueEnergyDistribution_pi", "nueEnergyDistribution_pi", N_ENERGY_BINS, ENEGRY_BIN_LIMITS);
     FillNueEnergyDistribution(nuEventVector_full, TMath::Pi(), nueEnergyDistribution_pi, true);
 
-    TH1D * anueEnergyDistribution_pi = new TH1D("anueEnergyDistribution_pi", "anueEnergyDistribution_pi", nEnergyBins, minEnergy, maxEnergy);
+    //TH1D * anueEnergyDistribution_pi = new TH1D("anueEnergyDistribution_pi", "anueEnergyDistribution_pi", N_ENERGY_BINS, MIN_ENERGY, MAX_ENERGY);
+    TH1D * anueEnergyDistribution_pi = new TH1D("anueEnergyDistribution_pi", "anueEnergyDistribution_pi", N_ENERGY_BINS, ENEGRY_BIN_LIMITS);
     FillNueEnergyDistribution(anuEventVector_full, TMath::Pi(), anueEnergyDistribution_pi, false);
 
-    TH1D * numuEnergyDistribution_pi = new TH1D("numuEnergyDistribution_pi", "numuEnergyDistribution_pi", nEnergyBins, minEnergy, maxEnergy);
+    //TH1D * numuEnergyDistribution_pi = new TH1D("numuEnergyDistribution_pi", "numuEnergyDistribution_pi", N_ENERGY_BINS, MIN_ENERGY, MAX_ENERGY);
+    TH1D * numuEnergyDistribution_pi = new TH1D("numuEnergyDistribution_pi", "numuEnergyDistribution_pi", N_ENERGY_BINS, ENEGRY_BIN_LIMITS);
     FillNumuEnergyDistribution(nuEventVector_full, TMath::Pi(), numuEnergyDistribution_pi, true);
 
-    TH1D * anumuEnergyDistribution_pi = new TH1D("anumuEnergyDistribution_pi", "anumuEnergyDistribution_pi", nEnergyBins, minEnergy, maxEnergy);
+    //TH1D * anumuEnergyDistribution_pi = new TH1D("anumuEnergyDistribution_pi", "anumuEnergyDistribution_pi", N_ENERGY_BINS, MIN_ENERGY, MAX_ENERGY);
+    TH1D * anumuEnergyDistribution_pi = new TH1D("anumuEnergyDistribution_pi", "anumuEnergyDistribution_pi", N_ENERGY_BINS, ENEGRY_BIN_LIMITS);
     FillNumuEnergyDistribution(anuEventVector_full, TMath::Pi(), anumuEnergyDistribution_pi, false);
 
     //TH1D * combinedNueEnergyDistribution_pi = (TH1D*)nueEnergyDistribution_pi->Clone();
@@ -208,16 +261,24 @@ void PlotSensitivity(const NeutrinoEventVector &nuEventVector_full, const Neutri
         factoredDeltaCP[i] = minFactoredDeltaCP + ((maxFactoredDeltaCP - minFactoredDeltaCP) * i / nDeltaCPValues);
         double deltaCP = factoredDeltaCP[i] * TMath::Pi();
 
-        TH1D * nueEnergyDistribution = new TH1D(("nueEnergyDistribution" + to_string(deltaCP)).c_str(), ("nueEnergyDistribution" + to_string(deltaCP)).c_str(), nEnergyBins, minEnergy, maxEnergy);
+        //TH1D * nueEnergyDistribution = new TH1D(("nueEnergyDistribution" + to_string(deltaCP)).c_str(), ("nueEnergyDistribution" + to_string(deltaCP)).c_str(), N_ENERGY_BINS, 
+        //MIN_ENERGY, MAX_ENERGY);
+        TH1D * nueEnergyDistribution = new TH1D(("nueEnergyDistribution" + to_string(deltaCP)).c_str(), ("nueEnergyDistribution" + to_string(deltaCP)).c_str(), N_ENERGY_BINS, ENEGRY_BIN_LIMITS);
         FillNueEnergyDistribution(nuEventVector_full, deltaCP, nueEnergyDistribution, true);
 
-        TH1D * anueEnergyDistribution = new TH1D(("anueEnergyDistribution" + to_string(deltaCP)).c_str(), ("anueEnergyDistribution" + to_string(deltaCP)).c_str(), nEnergyBins, minEnergy, maxEnergy);
+        //TH1D * anueEnergyDistribution = new TH1D(("anueEnergyDistribution" + to_string(deltaCP)).c_str(), ("anueEnergyDistribution" + to_string(deltaCP)).c_str(), N_ENERGY_BINS,
+        //MIN_ENERGY, MAX_ENERGY);
+        TH1D * anueEnergyDistribution = new TH1D(("anueEnergyDistribution" + to_string(deltaCP)).c_str(), ("anueEnergyDistribution" + to_string(deltaCP)).c_str(), N_ENERGY_BINS, ENEGRY_BIN_LIMITS);
         FillNueEnergyDistribution(anuEventVector_full, deltaCP, anueEnergyDistribution, false);
 
-        TH1D * numuEnergyDistribution = new TH1D(("numuEnergyDistribution" + to_string(deltaCP)).c_str(), ("numuEnergyDistribution" + to_string(deltaCP)).c_str(), nEnergyBins, minEnergy, maxEnergy);
+        //TH1D * numuEnergyDistribution = new TH1D(("numuEnergyDistribution" + to_string(deltaCP)).c_str(), ("numuEnergyDistribution" + to_string(deltaCP)).c_str(), N_ENERGY_BINS, 
+        //MIN_ENERGY, MAX_ENERGY);
+        TH1D * numuEnergyDistribution = new TH1D(("numuEnergyDistribution" + to_string(deltaCP)).c_str(), ("numuEnergyDistribution" + to_string(deltaCP)).c_str(), N_ENERGY_BINS, ENEGRY_BIN_LIMITS);
         FillNumuEnergyDistribution(nuEventVector_full, deltaCP, numuEnergyDistribution, true);
 
-        TH1D * anumuEnergyDistribution = new TH1D(("anumuEnergyDistribution" + to_string(deltaCP)).c_str(), ("anumuEnergyDistribution" + to_string(deltaCP)).c_str(), nEnergyBins, minEnergy, maxEnergy);
+        //TH1D * anumuEnergyDistribution = new TH1D(("anumuEnergyDistribution" + to_string(deltaCP)).c_str(), ("anumuEnergyDistribution" + to_string(deltaCP)).c_str(), N_ENERGY_BINS, 
+        //MIN_ENERGY, MAX_ENERGY);
+        TH1D * anumuEnergyDistribution = new TH1D(("anumuEnergyDistribution" + to_string(deltaCP)).c_str(), ("anumuEnergyDistribution" + to_string(deltaCP)).c_str(), N_ENERGY_BINS, ENEGRY_BIN_LIMITS);
         FillNumuEnergyDistribution(anuEventVector_full, deltaCP, anumuEnergyDistribution, false);
 
         //TH1D * combinedNueEnergyDistribution = (TH1D*)nueEnergyDistribution->Clone();
@@ -428,7 +489,7 @@ void FillNueEnergyDistribution(const NeutrinoEventVector &nuEventVector_full, co
 {
     for (const NeutrinoEvent &nu : nuEventVector_full)
     {
-        bool isNueSelected(PERFORM_CVN_SELECTION ? PassCVNNueSelection(nu) : IsNueSelected(nu, isNu));
+        bool isNueSelected(PERFORM_CVN_SELECTION ? PassCVNNueSelection(nu) : IsNueSelected(nu, isNu, IS_JAM_SELECTION));
 
         if (!isNueSelected)
             continue; 
@@ -445,7 +506,7 @@ void FillNumuEnergyDistribution(const NeutrinoEventVector &nuEventVector_full, c
 {
     for (const NeutrinoEvent &nu : nuEventVector_full)
     {
-        const bool isNumuSelected(PERFORM_CVN_SELECTION ? PassCVNNumuSelection(nu) : IsNumuSelected(nu, isNu));
+        const bool isNumuSelected(PERFORM_CVN_SELECTION ? PassCVNNumuSelection(nu) : IsNumuSelected(nu, isNu, IS_JAM_SELECTION));
 
         if (!isNumuSelected)
             continue;

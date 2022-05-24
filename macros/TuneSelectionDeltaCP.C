@@ -10,12 +10,13 @@ double ComputeSelectionMetric(const TH3D * nue_zero, const TH3D * nue_pi, const 
     const TH3D * numu_zero, const TH3D * numu_pi, const std::vector<TH3D*> numu_deltaCP, const double numuPandizzle);
 
 const bool IS_NEUTRINO = true;
-const float SIGMA = 8.0;
-
+const bool IS_JAM_TUNE = false;
 
 void TuneSelectionDeltaCP(const std::string &inputFileName_full)
 {
     std::cout << "ONLY ADDING NUE SENSITIVITY" << std::endl;
+    std::cout << "\033[31m" << "For " << "\033[33m" << (IS_NEUTRINO ? "F" : "R") << "\033[31m" << "HC" << "\033[0m" << std::endl;
+    std::cout << "\033[31m" << "Performing " << "\033[33m" << (IS_JAM_TUNE ? "JAM" : "PANDRIZZLE") << "\033[31m" << "TUNING" << "\033[0m" << std::endl;
 
     NeutrinoEventVector nuEventVector_full;
     ReadFile(inputFileName_full, nuEventVector_full);
@@ -32,18 +33,19 @@ void FindSelectionCuts(const NeutrinoEventVector &nuEventVector_full)
 
     // Set up variable ranges (the plus 1 is so that i look at the 'accept nothing and accept everything' cases
     int pandizzleBins = 50;
-    double pandizzleMin = -1.0, pandizzleMax = 1.0;
+    double pandizzleMin = 0.0, pandizzleMax = 1.0;
     //double pandizzleMin = 0.2, pandizzleMax = 1.0; //FHC
     //double pandizzleMin = -0.1, pandizzleMax = 1.0; //RHC
-    double pandizzleStepSize = (pandizzleMax - pandizzleMin) / pandizzleBins;
+    double pandizzleStepSize = (pandizzleMax - pandizzleMin) / static_cast<double>(pandizzleBins);
+
     double pandizzleCuts[pandizzleBins + 1];
 
     for (int i = 0; i < pandizzleBins; ++i)
         pandizzleCuts[i] = pandizzleMin + (i * pandizzleStepSize);
-
+    
     int pandrizzleBins = 50;
-    double pandrizzleMin = -1.0, pandrizzleMax = 1.0;
-    //double pandrizzleMin = 0.0, pandrizzleMax = 0.5; //FHC
+    double pandrizzleMin = -0.5, pandrizzleMax = 1.0;
+    //double pandrizzleMin = 1.0, pandrizzleMax = 0.5; //FHC
     //double pandrizzleMin = 0.3, pandrizzleMax = 0.8; //RHC
     double pandrizzleStepSize = (pandrizzleMax - pandrizzleMin) / pandrizzleBins;
     double pandrizzleCuts[pandrizzleBins + 1];
@@ -81,6 +83,12 @@ void FindSelectionCuts(const NeutrinoEventVector &nuEventVector_full)
         numu_deltaCP.push_back(doggo);
     }
 
+    double bestNuePandizzle(0.0), bestNuePandrizzle(0.0);
+    double bestSelectionMetric(0.0);
+    unsigned int count(0);
+
+    TH2D * selectionMetricHist = new TH2D("selectionMetric", "selectionMetric", pandrizzleBins, pandrizzleMin, pandrizzleMax, pandizzleBins, pandizzleMin, pandizzleMax);
+
     // Fill cut histograms
     for (const NeutrinoEvent &nu : nuEventVector_full)
     {
@@ -89,39 +97,32 @@ void FindSelectionCuts(const NeutrinoEventVector &nuEventVector_full)
         if (!isRecoInFV)
             continue;
 
-        // remove events that are actually photons.. 
-        if(nu.m_selShowerTruePdg == 22)
-            continue;
-
         const double weight_zero(nu.m_projectedPOTWeight * (nu.m_isNC ? 1.0 : GetOscWeight(nu, 0.0)));
-        nue_zero->Fill(nu.m_selTrackPandizzleScore, nu.m_selShowerPandrizzleScore, nu.m_nueRecoENu, weight_zero);
-        numu_zero->Fill(nu.m_selTrackPandizzleScore, nu.m_selShowerPandrizzleScore, nu.m_numuRecoENu, weight_zero);
+        nue_zero->Fill(nu.m_selTrackPandizzleScore, IS_JAM_TUNE ? nu.m_selShowerJamPandrizzleScore : nu.m_selShowerPandrizzleScore, nu.m_nueRecoENu, weight_zero);
+        numu_zero->Fill(nu.m_selTrackPandizzleScore, IS_JAM_TUNE ? nu.m_selShowerJamPandrizzleScore : nu.m_selShowerPandrizzleScore, nu.m_numuRecoENu, weight_zero);
 
         const double weight_pi(nu.m_projectedPOTWeight * (nu.m_isNC ? 1.0 : GetOscWeight(nu, TMath::Pi())));
-        nue_pi->Fill(nu.m_selTrackPandizzleScore, nu.m_selShowerPandrizzleScore, nu.m_nueRecoENu, weight_pi);
-        numu_pi->Fill(nu.m_selTrackPandizzleScore, nu.m_selShowerPandrizzleScore, nu.m_numuRecoENu, weight_pi);
+        nue_pi->Fill(nu.m_selTrackPandizzleScore, IS_JAM_TUNE ? nu.m_selShowerJamPandrizzleScore : nu.m_selShowerPandrizzleScore, nu.m_nueRecoENu, weight_pi);
+        numu_pi->Fill(nu.m_selTrackPandizzleScore, IS_JAM_TUNE ? nu.m_selShowerJamPandrizzleScore : nu.m_selShowerPandrizzleScore, nu.m_numuRecoENu, weight_pi);
 
         for (int i = 0; i < nDeltaCPValues; ++i)
         {
             const double weight_deltaCP(nu.m_projectedPOTWeight * (nu.m_isNC ? 1.0 : GetOscWeight(nu, deltaCPValues[i])));
-            nue_deltaCP[i]->Fill(nu.m_selTrackPandizzleScore, nu.m_selShowerPandrizzleScore, nu.m_nueRecoENu, weight_deltaCP);
-            numu_deltaCP[i]->Fill(nu.m_selTrackPandizzleScore, nu.m_selShowerPandrizzleScore, nu.m_numuRecoENu, weight_deltaCP);
+            nue_deltaCP[i]->Fill(nu.m_selTrackPandizzleScore, IS_JAM_TUNE ? nu.m_selShowerJamPandrizzleScore : nu.m_selShowerPandrizzleScore, nu.m_nueRecoENu, weight_deltaCP);
+            numu_deltaCP[i]->Fill(nu.m_selTrackPandizzleScore, IS_JAM_TUNE ? nu.m_selShowerJamPandrizzleScore : nu.m_selShowerPandrizzleScore, nu.m_numuRecoENu, weight_deltaCP);
         }
-    }
+    }    
 
-    double bestNuePandizzle(0.0), bestNuePandrizzle(0.0);
-    double bestSelectionMetric(0.0);
-    unsigned int count(0);
-
-    TH2D * selectionMetricHist = new TH2D("selectionMetric", "selectionMetric", pandrizzleBins, pandrizzleMin, pandrizzleMax, pandizzleBins, pandizzleMin, pandizzleMax);
-
+    
     // the equals is so i look at the 'accept nothing and accept everything' cases
-    for (int nuePandizzleIndex = 0; nuePandizzleIndex <= pandizzleBins; ++nuePandizzleIndex)
+    for (int nuePandizzleIndex = 0; nuePandizzleIndex < pandizzleBins; ++nuePandizzleIndex)
     {
-        for (int nuePandrizzleIndex = 0; nuePandrizzleIndex <= pandrizzleBins; ++nuePandrizzleIndex)
+        std::cout << "pandizzle: " <<  pandizzleCuts[nuePandizzleIndex] << std::endl;
+        for (int nuePandrizzleIndex = 0; nuePandrizzleIndex < pandrizzleBins; ++nuePandrizzleIndex)
         {
             ++count;
-            std::cout << "Iteration: " << count << "/" << pandrizzleBins * pandizzleBins << std::endl;
+            if (count % 1000 == 0)
+                std::cout << "Iteration: " << count << "/" << pandrizzleBins * pandizzleBins << std::endl;
 
             const double selectionMetric(ComputeSelectionMetric(nue_zero, nue_pi, nue_deltaCP, pandizzleCuts[nuePandizzleIndex], pandrizzleCuts[nuePandrizzleIndex],
                 numu_zero, numu_pi, numu_deltaCP));
@@ -134,11 +135,13 @@ void FindSelectionCuts(const NeutrinoEventVector &nuEventVector_full)
             }
 
             // the bin corresponds to the bottom enclosed square of lines drawn at cuts
+
             if ((nuePandrizzleIndex > 0) && (nuePandizzleIndex > 0))
                 selectionMetricHist->SetBinContent(selectionMetricHist->GetBin(nuePandrizzleIndex, nuePandizzleIndex), selectionMetric);
+
         }
     }
-
+        
     selectionMetricHist->SetTitle("SelectionMetric;Pandrizzle Score;Pandizzle Score");
     selectionMetricHist->Write("selectionMetricHist");
 
@@ -225,12 +228,17 @@ double ComputeSelectionMetric(const TH3D * nue_zero, const TH3D * nue_pi, const 
         numuProjection_pi->Add(bothProjection_pi, -1.0);
     }
     */
-    double totalCoveredRange = 0.0;
-    double previousSigTotal = -std::numeric_limits<double>::max();
-    const double deltaCPStepSize = 1.0 / nue_deltaCP.size();
+
+    double maxSig = -std::numeric_limits<double>::max();
+    const double deltaCPStepSize = 2.0 / nue_deltaCP.size();
 
     for (int i = 0; i < nue_deltaCP.size(); ++i)
     {
+        const double deltaCP = (-1.0) + (i * deltaCPStepSize);
+
+        if (deltaCP < 0.f)
+            continue;
+
         TH1D *nueProjection_deltaCP = nue_deltaCP[i]->ProjectionZ(("sock" + to_string(i)).c_str(), nuePandizzleMinBin, nuePandizzleCutBin, 
                                                                   (pandrizzleCutBin + 1), pandrizzleMaxBin, "o");
 
@@ -260,13 +268,11 @@ double ComputeSelectionMetric(const TH3D * nue_zero, const TH3D * nue_pi, const 
 
         const double sigTotal = std::sqrt(2.0 * logLikelihoodSum);
 
-        if ((previousSigTotal > SIGMA) && (sigTotal > SIGMA))
-            totalCoveredRange += deltaCPStepSize;
-
-        previousSigTotal = sigTotal;
+        if (sigTotal > maxSig)
+            maxSig = sigTotal;
     }
 
-    return totalCoveredRange;
+    return maxSig;
 }
 
 //------------------------------------------------------------------------------------------------------------------------------------------
@@ -342,18 +348,18 @@ void FindSelectionCuts(const NeutrinoEventVector &nuEventVector_full)
             continue;
 
         const double weight_zero(nu.m_projectedPOTWeight * (nu.m_isNC ? 1.0 : GetOscWeight(nu, 0.0)));
-        nue_zero->Fill(nu.m_selTrackPandizzleScore, nu.m_selShowerPandrizzleScore, nu.m_nueRecoENu, weight_zero);
-        numu_zero->Fill(nu.m_selTrackPandizzleScore, nu.m_selShowerPandrizzleScore, nu.m_numuRecoENu, weight_zero);
+        nue_zero->Fill(nu.m_selTrackPandizzleScore, IS_JAM_TUNE ? nu.m_selShowerJamPandrizzleScore : nu.m_selShowerPandrizzleScore, nu.m_nueRecoENu, weight_zero);
+        numu_zero->Fill(nu.m_selTrackPandizzleScore, IS_JAM_TUNE ? nu.m_selShowerJamPandrizzleScore : nu.m_selShowerPandrizzleScore, nu.m_numuRecoENu, weight_zero);
 
         const double weight_pi(nu.m_projectedPOTWeight * (nu.m_isNC ? 1.0 : GetOscWeight(nu, TMath::Pi())));
-        nue_pi->Fill(nu.m_selTrackPandizzleScore, nu.m_selShowerPandrizzleScore, nu.m_nueRecoENu, weight_pi);
-        numu_pi->Fill(nu.m_selTrackPandizzleScore, nu.m_selShowerPandrizzleScore, nu.m_numuRecoENu, weight_pi);
+        nue_pi->Fill(nu.m_selTrackPandizzleScore, IS_JAM_TUNE ? nu.m_selShowerJamPandrizzleScore : nu.m_selShowerPandrizzleScore, nu.m_nueRecoENu, weight_pi);
+        numu_pi->Fill(nu.m_selTrackPandizzleScore, IS_JAM_TUNE ? nu.m_selShowerJamPandrizzleScore : nu.m_selShowerPandrizzleScore, nu.m_numuRecoENu, weight_pi);
 
         for (int i = 0; i < nDeltaCPValues; ++i)
         {
             const double weight_deltaCP(nu.m_projectedPOTWeight * (nu.m_isNC ? 1.0 : GetOscWeight(nu, deltaCPValues[i])));
-            nue_deltaCP[i]->Fill(nu.m_selTrackPandizzleScore, nu.m_selShowerPandrizzleScore, nu.m_nueRecoENu, weight_deltaCP);
-            numu_deltaCP[i]->Fill(nu.m_selTrackPandizzleScore, nu.m_selShowerPandrizzleScore, nu.m_numuRecoENu, weight_deltaCP);
+            nue_deltaCP[i]->Fill(nu.m_selTrackPandizzleScore, IS_JAM_TUNE ? nu.m_selShowerJamPandrizzleScore : nu.m_selShowerPandrizzleScore, nu.m_nueRecoENu, weight_deltaCP);
+            numu_deltaCP[i]->Fill(nu.m_selTrackPandizzleScore, IS_JAM_TUNE ? nu.m_selShowerJamPandrizzleScore : nu.m_selShowerPandrizzleScore, nu.m_numuRecoENu, weight_deltaCP);
         }
     }
 

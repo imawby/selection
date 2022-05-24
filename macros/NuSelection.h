@@ -46,12 +46,14 @@ public:
 void NuSelection(const std::string &inputFile);
 void InitialiseNuSelectionHistogramCollection(NuSelectionHistogramCollection &nuSelectionHistogramCollection, const std::string &histPrefix);
 void InitialiseNuSelectionHistograms(NuSelectionHistograms &nuSelectionHistograms, const std::string &histPrefix, const unsigned int nBins, const float xMin, const float xMax);
-void PerformSelection(const NeutrinoEventVector &nuVector, NuSelectionHistogramCollection &nueSelectionHistogramCollection, NuSelectionHistogramCollection &numuSelectionHistogramCollection);
+void PerformSelection(const NeutrinoEventVector &nuVector, NuSelectionHistogramCollection &nueSelectionHistogramCollection, NuSelectionHistogramCollection &numuSelectionHistogramCollection,
+                      std::vector<int> eventsToPass);
 void ProcessHistogramCollection(NuSelectionHistogramCollection &nuSelectionHistogramCollection);
 void ProcessHistograms(NuSelectionHistograms &nuSelectionHistograms);
 void DrawHistogramCollection(NuSelectionHistogramCollection &nuSelectionHistogramCollection, const std::string &histPrefix);
 void WriteHistogramCollection(NuSelectionHistogramCollection &nuSelectionHistogramCollection, const std::string &histPrefix);
 double GetOscWeight(const NeutrinoEvent &nu);
+void FindEventsToPass(const NeutrinoEventVector &nuVector, std::vector<int> &eventsToPass);
 
 //------------------------------------------------------------------------------------------------------------------------------------------
 //------------------------------------------------------------------------------------------------------------------------------------------

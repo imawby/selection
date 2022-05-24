@@ -9,12 +9,14 @@ double ComputeSelectionMetric(const double nSignal, const TH1D *signal, const TH
 double GetOscWeight(const NeutrinoEvent &nu);
 
 bool PERFORM_OLD_NUE_SELECTION = false;
-bool IS_NEUTRINO = false;
+bool IS_NEUTRINO = true;
+const bool IS_JAM_SELECTION = true;
 
 void TuneNumuSelection(const std::string &inputFileName_full)
 {
     std::cout << "\033[31m" << "Performing " << "\033[33m" << (PERFORM_OLD_NUE_SELECTION ? "old " : "new ") << "\033[31m" << "nue selection" << "\033[0m" << std::endl; 
     std::cout << "\033[31m" << "For " << "\033[33m" << (IS_NEUTRINO ? "F" : "R") << "\033[31m" << "HC" << "\033[0m" << std::endl;
+    std::cout << "\033[31m" << "Performing " << "\033[33m" << (IS_JAM_SELECTION ? "JAM-ENHANCED PANDRIZZLE " : "PANDRIZZLE ") << "\033[31m" << "selection" << "\033[0m" << std::endl; 
 
     NeutrinoEventVector nuEventVector_full;
     ReadFile(inputFileName_full, nuEventVector_full);
@@ -39,7 +41,7 @@ void DrawSelectionHistograms(NeutrinoEventVector &nuEventVector_full)
         if (!IsRecoInFiducialVolume(nu))
             continue;
 
-        if (PassNueSelection(nu, IS_NEUTRINO))
+        if (IsNueSelected(nu, IS_NEUTRINO, IS_JAM_SELECTION))
             continue;
 
         const double weight(nu.m_projectedPOTWeight * (nu.m_isNC ? 1.0 : GetOscWeight(nu)));
@@ -86,7 +88,7 @@ void FindSelectionCuts(const NeutrinoEventVector &nuEventVector_full)
     for (const NeutrinoEvent &nu : nuEventVector_full)
     {
         const bool isRecoInFV(IsRecoInFiducialVolume(nu));
-        const bool passNueSelection(PERFORM_OLD_NUE_SELECTION ? PassOldNueSelection(nu, IS_NEUTRINO) : PassNueSelection(nu, IS_NEUTRINO));
+        const bool passNueSelection(PERFORM_OLD_NUE_SELECTION ? PassOldNueSelection(nu, IS_NEUTRINO) : IsNueSelected(nu, IS_NEUTRINO, IS_JAM_SELECTION));
 
         const double weight(nu.m_projectedPOTWeight * (nu.m_isNC ? 1.0 : GetOscWeight(nu)));
 

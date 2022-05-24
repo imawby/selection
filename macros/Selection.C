@@ -23,15 +23,42 @@ bool PassOldNueSelection(const NeutrinoEvent &nu, const bool isNu)
     if (!IsRecoInFiducialVolume(nu))
         return false;
 
-    const double showerDisplacementX(nu.m_selShowerRecoStartX - nu.m_nuRecoVertexX);
-    const double showerDisplacementY(nu.m_selShowerRecoStartY - nu.m_nuRecoVertexY);
-    const double showerDisplacementZ(nu.m_selShowerRecoStartZ - nu.m_nuRecoVertexZ);
+    const double showerDisplacementX(nu.m_selShowerStartX - nu.m_nuRecoVertexX);
+    const double showerDisplacementY(nu.m_selShowerStartY - nu.m_nuRecoVertexY);
+    const double showerDisplacementZ(nu.m_selShowerStartZ - nu.m_nuRecoVertexZ);
     const double showerDisplacementSquared((showerDisplacementX * showerDisplacementX) + (showerDisplacementY * showerDisplacementY) + (showerDisplacementZ * showerDisplacementZ));
 
     if (showerDisplacementSquared > (NUE_SHOWER_SEP_CUT * NUE_SHOWER_SEP_CUT))
         return false;
 
     return true;
+}
+
+//------------------------------------------------------------------------------------------------------------------------------------------
+
+bool PassNueJamSelection(const NeutrinoEvent &nu, const bool isNu)
+{
+    if (nu.m_recoNuVtxNChildren == 0)
+        return false;
+
+    if (!IsRecoInFiducialVolume(nu))
+        return false;
+
+    // does it pass the jam-enhanced pandrizzle cuts?    
+    const double nueJamPandizzleCut(isNu ? NUE_JAM_PANDIZZLE_CUT : ANUE_JAM_PANDIZZLE_CUT);
+    const double nueJamPandrizzleCut(isNu ? NUE_JAM_PANDRIZZLE_CUT : ANUE_JAM_PANDRIZZLE_CUT);
+
+    if ((nu.m_selShowerJamPandrizzleScore > nueJamPandrizzleCut) && (nu.m_selTrackPandizzleScore < nueJamPandizzleCut))
+        return true;
+
+    // does it pass the pandrizzle cuts
+    const double nuePandizzleCut(isNu ? NUE_PANDIZZLE_CUT : ANUE_PANDIZZLE_CUT);
+    const double nuePandrizzleCut(isNu ? NUE_PANDRIZZLE_CUT : ANUE_PANDRIZZLE_CUT);
+
+    if ((nu.m_selShowerPandrizzleScore > nuePandrizzleCut) && (nu.m_selTrackPandizzleScore < nuePandizzleCut))
+        return true;
+
+    return false;
 }
 
 //------------------------------------------------------------------------------------------------------------------------------------------
@@ -44,38 +71,6 @@ bool PassNueSelection(const NeutrinoEvent &nu, const bool isNu)
     if (!IsRecoInFiducialVolume(nu))
         return false;
     
-    // CHEATING
-    /*
-    // Remove all anumu/numu background
-    if ((std::abs(nu.m_nuPdg) == 14) && !nu.m_isNC)
-        return false;
-    
-    
-    // Remove all anutau/nutau background
-    if ((std::abs(nu.m_nuPdg) == 16) && !nu.m_isNC)
-        return false;
-    
-    // Remove all NC events
-    if (nu.m_isNC)
-        return false;
-    
-
-    // Prefect
-    if (IsNueCCSignal(nu, isNu))
-    {
-        return true;
-    }
-    else
-    {
-        return false;
-    }
-*/
-
-    // remove events that are actually photons.. 
-    if(nu.m_selShowerTruePdg == 22)
-        return false;
-
-
     const double nuePandizzleCut(isNu ? NUE_PANDIZZLE_CUT : ANUE_PANDIZZLE_CUT);
     const double nuePandrizzleCut(isNu ? NUE_PANDRIZZLE_CUT : ANUE_PANDRIZZLE_CUT);
 
@@ -88,6 +83,25 @@ bool PassNueSelection(const NeutrinoEvent &nu, const bool isNu)
     return true;
 }
 
+//------------------------------------------------------------------------------------------------------------------------------------------
+/*
+bool PassNueSelection(const NeutrinoEvent &nu, double pandrizzleCut, double pandizzleCut)
+{
+    if (nu.m_recoNuVtxNChildren == 0)
+        return false;
+
+    if (!IsRecoInFiducialVolume(nu))
+        return false;
+    
+    if (nu.m_selTrackPandizzleScore > pandizzleCut)
+        return false;
+
+    if (nu.m_selShowerPandrizzleScore < pandrizzleCut)
+        return false;
+
+    return true;
+}
+*/
 //------------------------------------------------------------------------------------------------------------------------------------------
 
 bool PassNumuSelection(const NeutrinoEvent &nu, const bool isNu)
@@ -108,22 +122,22 @@ bool PassNumuSelection(const NeutrinoEvent &nu, const bool isNu)
 
 //------------------------------------------------------------------------------------------------------------------------------------------
 
-bool IsNueSelected(const NeutrinoEvent &nu, const bool isNu)
+bool IsNueSelected(const NeutrinoEvent &nu, const bool isNu, const bool isJamSelection)
 {
+    if (isJamSelection)
+        return PassNueJamSelection(nu, isNu);
+
     return PassNueSelection(nu, isNu);
 }
 
 //------------------------------------------------------------------------------------------------------------------------------------------
 
-bool IsNumuSelected(const NeutrinoEvent &nu, const bool isNu)
+bool IsNumuSelected(const NeutrinoEvent &nu, const bool isNu, const bool isJamSelection)
 {
-    if (IsNueSelected(nu, isNu))
+    if (IsNueSelected(nu, isNu, isJamSelection))
         return false;
 
-    if (PassNumuSelection(nu, isNu))
-        return true;
-
-    return false;
+    return PassNumuSelection(nu, isNu);
 }
 
 //------------------------------------------------------------------------------------------------------------------------------------------

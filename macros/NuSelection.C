@@ -5,7 +5,7 @@
 
 bool PERFORM_CVN_SELECTION = false;
 bool PERFORM_OLD_NUE_SELECTION = false;
-bool IS_NEUTRINO = false;
+bool IS_NEUTRINO = true;
 
 void NuSelection(const std::string &inputFileName)
 {
@@ -22,7 +22,11 @@ void NuSelection(const std::string &inputFileName)
     NuSelectionHistogramCollection numuHistogramCollection;
     InitialiseNuSelectionHistogramCollection(numuHistogramCollection, "numu");
 
-    PerformSelection(neutrinoEventVector, nueHistogramCollection, numuHistogramCollection);
+    // Find events to pass
+    std::vector<int> eventsToPass;
+    //FindEventsToPass(neutrinoEventVector, eventsToPass);
+
+    PerformSelection(neutrinoEventVector, nueHistogramCollection, numuHistogramCollection, eventsToPass);
 
     ProcessHistogramCollection(nueHistogramCollection);
     ProcessHistogramCollection(numuHistogramCollection);
@@ -66,13 +70,14 @@ void InitialiseNuSelectionHistograms(NuSelectionHistograms &nuSelectionHistogram
 //------------------------------------------------------------------------------------------------------------------------------------------
 
 void PerformSelection(const NeutrinoEventVector &nuVector, NuSelectionHistogramCollection &nueSelectionHistogramCollection, 
-    NuSelectionHistogramCollection &numuSelectionHistogramCollection)
+                      NuSelectionHistogramCollection &numuSelectionHistogramCollection, std::vector<int> eventsToPass)
 {
     double nueSignal(0.0), nueBackground(0.0), nueSelected(0.0), nueSignalSelected(0.0), nueFlavourSignalSelected(0.0), nueBackgroundRejected(0.0);
     double numuSignal(0.0), numuBackground(0.0), numuSelected(0.0), numuSignalSelected(0.0), numuFlavourSignalSelected(0.0), numuBackgroundRejected(0.0);
 
-    for (const NeutrinoEvent &nu : nuVector)
+    for (int i = 0; i < nuVector.size(); i++)
     {
+        const NeutrinoEvent nu = nuVector[i];
         const bool isNueCCSignal(IsNueCCSignal(nu, IS_NEUTRINO));
         const bool isNueFlavourCCSignal(IsNueFlavourCCSignal(nu));
 
@@ -110,7 +115,10 @@ void PerformSelection(const NeutrinoEventVector &nuVector, NuSelectionHistogramC
             numuSelectionHistogramCollection.m_lepNuOpeningAngleHists.m_signal->Fill(nu.m_lepNuOpeningAngle, weight);
         }
 
-        const bool passNueSelection(PERFORM_CVN_SELECTION ? PassCVNNueSelection(nu) : (PERFORM_OLD_NUE_SELECTION ? PassOldNueSelection(nu, IS_NEUTRINO) : PassNueSelection(nu, IS_NEUTRINO)));
+        bool passNueSelection(PERFORM_CVN_SELECTION ? PassCVNNueSelection(nu) : (PERFORM_OLD_NUE_SELECTION ? PassOldNueSelection(nu, IS_NEUTRINO) : PassNueSelection(nu, IS_NEUTRINO)));
+
+        if (std::find(eventsToPass.begin(), eventsToPass.end(), i) != eventsToPass.end())
+            passNueSelection = false;
 
         // Apply Selection
         if (passNueSelection)
@@ -338,3 +346,75 @@ double GetOscWeight(const NeutrinoEvent &nu)
 }
 
 //------------------------------------------------------------------------------------------------------------------------------------------
+
+void FindEventsToPass(const NeutrinoEventVector &nuVector, std::vector<int> &eventsToPass)
+{
+    double nueSelected(0.0), nueBackgroundSelected(0.0), nueFlavourSignalSelected(0.0);
+
+    std::vector<int> selectedBackgroundIndices;
+
+    double TARGET_PURITY = 0.05;
+    double MIN_ENERGY = 0.0;
+    double MAX_ENERGY = 100000000.0;
+
+    for (int i = 0; i < nuVector.size(); i++)
+    {
+        const NeutrinoEvent &nu(nuVector[i]);
+        const bool isNueFlavourCCSignal(IsNueFlavourCCSignal(nu));
+        const bool passNueSelection(PERFORM_CVN_SELECTION ? PassCVNNueSelection(nu) : PassNueSelection(nu, true));
+        const double weight(nu.m_projectedPOTWeight * (nu.m_isNC ? 1.0 : GetOscWeight(nu)));
+
+        // Apply Selection
+        if (passNueSelection)
+        {
+            nueSelected += weight;
+
+            if (isNueFlavourCCSignal)
+            {
+                nueFlavourSignalSelected += weight;
+            }
+            else
+            {
+                nueBackgroundSelected += weight; 
+
+                if ((nu.m_nueRecoENu > MIN_ENERGY) && (nu.m_nueRecoENu < MAX_ENERGY))
+                    selectedBackgroundIndices.push_back(i);
+            }
+        }
+    }
+
+    for (int element : selectedBackgroundIndices)
+        std::cout << "selected background index: " << element << std::endl;
+
+    const double targetSelectedBackground((1.0 / ((TARGET_PURITY / nueFlavourSignalSelected) + (1.0 / nueSelected))) - nueFlavourSignalSelected);
+    const double backgroundToRemove(nueBackgroundSelected - targetSelectedBackground);
+
+    std::cout << "nueFlavourSignalSelected: " << nueFlavourSignalSelected << std::endl;
+    std::cout << "nueSelected: " << nueSelected << std::endl;
+    std::cout << "nueBackgroundSelected: " << nueBackgroundSelected << std::endl;
+    std::cout << "targetSelectedBackground: " << targetSelectedBackground << std::endl;
+    std::cout << "backgroundToRemove: " << backgroundToRemove << std::endl;
+
+    TRandom * randomNumber = new TRandom();
+
+    double removedBackground = 0.0;
+    while((eventsToPass.size() != selectedBackgroundIndices.size()) && (removedBackground < backgroundToRemove))
+    {
+        const int randomIndex(std::floor(randomNumber->Uniform(0, selectedBackgroundIndices.size() - 1)));
+
+        if (std::find(eventsToPass.begin(), eventsToPass.end(), selectedBackgroundIndices[randomIndex]) != eventsToPass.end())
+            continue;
+
+        const NeutrinoEvent &nu(nuVector[selectedBackgroundIndices[randomIndex]]);
+        const double weight(nu.m_projectedPOTWeight * (nu.m_isNC ? 1.0 : GetOscWeight(nu)));
+
+        removedBackground += weight;
+        std::cout << "randomIndex: " << randomIndex << std::endl;
+        eventsToPass.push_back(selectedBackgroundIndices[randomIndex]);
+    }
+
+    for (int entr : eventsToPass)
+        std::cout << "event to skip index: " << entr << std::endl;
+
+    std::cout << "removedBackground: " << removedBackground << std::endl;
+}

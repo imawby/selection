@@ -4,6 +4,20 @@
 constexpr int kDefInt = -9999;
 constexpr int kDefDouble = (double)(kDefInt);
 
+class ElectronValidation
+{
+public:
+    ElectronValidation();
+
+    std::vector<int> m_nPFPHits;
+    std::vector<double> m_trueNueEnergy;
+    std::vector<int> m_beamPdg;
+    std::vector<int> m_nuPdg;
+    std::vector<double> m_POTWeight;
+};
+
+///////////////////////////////////////////////////////////////////////////////////////////
+
 class NeutrinoEvent
 {
 public:
@@ -13,6 +27,7 @@ public:
     int m_subrun;
     int m_event;
     int m_isNC;
+    int m_intType;
     int m_beamPdg;
     int m_nuPdg;
     double m_projectedPOTWeight;
@@ -21,6 +36,7 @@ public:
     double m_qSqr;
     double m_lepMom;
     double m_lepNuOpeningAngle;
+    int m_nPFPHits;
 
     // selected track
     int m_selTrackTruePdg;
@@ -53,17 +69,55 @@ public:
     int m_recoNuVtxNTracks;
     int m_recoNuVtxNShowers;
 
-    double m_recoTrackRecoEndClosestToVertexX[500];
-    double m_recoTrackRecoEndClosestToVertexY[500];
-    double m_recoTrackRecoEndClosestToVertexZ[500];
+    //double m_recoTrackRecoEndClosestToVertexX[1000];
+    //double m_recoTrackRecoEndClosestToVertexY[1000];
+    //double m_recoTrackRecoEndClosestToVertexZ[1000];
 
+
+    // Selected Shower Stuff
+    double m_selShowerJamPandrizzleScore;
     double m_selShowerPandrizzleScore;
     double m_selShowerElectronScore;
-
-    double m_selShowerRecoStartX;
-    double m_selShowerRecoStartY;
-    double m_selShowerRecoStartZ;
+    double m_selShowerStartX;
+    double m_selShowerStartY;
+    double m_selShowerStartZ;
     int m_selShowerTruePdg;
+    double m_selShowerCompleteness;
+    double m_selShowerPurity;
+    double m_selShowerTrueStartX;
+    double m_selShowerTrueStartY;
+    double m_selShowerTrueStartZ;
+    double m_selShowerTrueMomX;
+    double m_selShowerTrueMomY;
+    double m_selShowerTrueMomZ;
+    double m_selShowerDirectionX;
+    double m_selShowerDirectionY;
+    double m_selShowerDirectionZ;
+    double m_selShowerDisplacement;
+    double m_selShowerDCA;
+    double m_selShowerEvalRatio;
+    double m_selShowerConcentration;
+    double m_selShowerCoreHaloRatio;
+    double m_selShowerConicalness;
+    double m_selShowerdEdxBestPlane;
+    double m_selShowerWideness;
+    double m_selShowerEnergyDensity;
+
+    // All Shower Stuff
+    int m_nRecoShowers;
+   
+
+    /*
+    double m_allShowerTrueMomX[1000];
+    double m_allShowerTrueMomY[1000];
+    double m_allShowerTrueMomZ[1000];
+    double m_allShowerTrueMomT[1000];
+
+    double m_allShowerDirectionX[1000];
+    double m_allShowerDirectionY[1000];
+    double m_allShowerDirectionZ[1000];
+
+    */
 
     // CVN scores
     double m_cvnResultNue;
@@ -84,6 +138,7 @@ NeutrinoEvent::NeutrinoEvent() :
     m_subrun(kDefInt),
     m_event(kDefInt),
     m_isNC(false),
+    m_intType(kDefInt),
     m_beamPdg(kDefInt),
     m_nuPdg(kDefInt),
     m_target(kDefInt),
@@ -92,6 +147,7 @@ NeutrinoEvent::NeutrinoEvent() :
     m_qSqr(kDefDouble),
     m_lepMom(kDefDouble),
     m_lepNuOpeningAngle(kDefDouble),
+    m_nPFPHits(0),
     m_selTrackTruePdg(0),
     m_selTrackContained(-2),
     m_selTrackMomentumMethod(-2),
@@ -111,15 +167,45 @@ NeutrinoEvent::NeutrinoEvent() :
     m_nuRecoVertexY(kDefDouble),
     m_nuRecoVertexZ(kDefDouble),
     m_selTrackPandizzleScore(kDefDouble),
+    m_selShowerJamPandrizzleScore(kDefDouble),
     m_selShowerPandrizzleScore(kDefDouble),
     m_selShowerElectronScore(kDefDouble),
-    m_selShowerRecoStartX(kDefDouble),
-    m_selShowerRecoStartY(kDefDouble),
-    m_selShowerRecoStartZ(kDefDouble),
+    m_selShowerStartX(kDefDouble),
+    m_selShowerStartY(kDefDouble),
+    m_selShowerStartZ(kDefDouble),
+    m_selShowerCompleteness(kDefDouble),
+    m_selShowerPurity(kDefDouble),
+    m_selShowerTrueMomX(kDefDouble),
+    m_selShowerTrueMomY(kDefDouble),
+    m_selShowerTrueMomZ(kDefDouble),
+    m_selShowerDirectionX(kDefDouble),
+    m_selShowerDirectionY(kDefDouble),
+    m_selShowerDirectionZ(kDefDouble),
+    m_selShowerDisplacement(kDefDouble),
+    m_selShowerDCA(kDefDouble),
+    m_selShowerEvalRatio(kDefDouble),
+    m_selShowerConcentration(kDefDouble),
+    m_selShowerCoreHaloRatio(kDefDouble),
+    m_selShowerConicalness(kDefDouble),
+    m_selShowerdEdxBestPlane(kDefDouble),
+    m_selShowerWideness(kDefDouble),
+    m_selShowerEnergyDensity(kDefDouble),
+    m_nRecoShowers(0),
     m_cvnResultNue(kDefDouble),
     m_cvnResultNumu(kDefDouble),
     m_cvnResultNutau(kDefDouble),
     m_cvnResultNC(kDefDouble)
+{
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////
+
+ElectronValidation::ElectronValidation() :
+    m_nPFPHits(std::vector<int>()),
+    m_trueNueEnergy(std::vector<double>()),
+    m_beamPdg(std::vector<int>()),
+    m_nuPdg(std::vector<int>()),
+    m_POTWeight(std::vector<double>())
 {
 }
 
