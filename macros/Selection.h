@@ -46,16 +46,19 @@ double NUE_SHOWER_SEP_CUT = 4.8;
 //double NUMU_PANDIZZLE_CUT = 0.46;
 
 // cheat full pandora reco (20 hit cuts)
+//double NUE_JAM_PANDRIZZLE_CUT = 1.0;
 //double NUE_PANDRIZZLE_CUT = 0.935;
 //double NUE_PANDIZZLE_CUT = 0.928;
 //double NUMU_PANDIZZLE_CUT = 0.44;
 
 // cheat visible vertex full pandora reco (20 hit cuts)
+//double NUE_JAM_PANDRIZZLE_CUT = 1.0;
 //double NUE_PANDRIZZLE_CUT = 0.762;
 //double NUE_PANDIZZLE_CUT = 0.69;
 //double NUMU_PANDIZZLE_CUT = 0.3;
 
 // cheat visible vertex electron gamma plus nu vertex
+//double NUE_JAM_PANDRIZZLE_CUT = 1.0;
 //double NUE_PANDRIZZLE_CUT = 0.756;
 //double NUE_PANDIZZLE_CUT = 0.868;
 //double NUMU_PANDIZZLE_CUT = 0.36;
@@ -66,6 +69,7 @@ double NUE_SHOWER_SEP_CUT = 4.8;
 //double NUMU_PANDIZZLE_CUT = 0.34;
 
 // cheat visible vertex complete electron gamma plus nu vertex
+//double NUE_JAM_PANDRIZZLE_CUT = 1.0;
 //double NUE_PANDRIZZLE_CUT = 0.892;
 //double NUE_PANDIZZLE_CUT = 0.888;
 //double NUMU_PANDIZZLE_CUT = 0.3;
@@ -81,9 +85,10 @@ double NUE_SHOWER_SEP_CUT = 4.8;
 //double NUMU_PANDIZZLE_CUT = 0.38;
 
 // cheat SHIFTED vertex complete electron gamma plu nu vertex
-//double NUE_PANDRIZZLE_CUT = 0.898;
-//double NUE_PANDIZZLE_CUT = 0.712;
-//double NUMU_PANDIZZLE_CUT = 0.36;
+double NUE_JAM_PANDRIZZLE_CUT = 1.0;
+double NUE_PANDRIZZLE_CUT = 0.898;
+double NUE_PANDIZZLE_CUT = 0.712;
+double NUMU_PANDIZZLE_CUT = 0.36;
 
 // cheat CC electron refinement
 //double NUE_PANDRIZZLE_CUT = 0.77;
@@ -91,11 +96,19 @@ double NUE_SHOWER_SEP_CUT = 4.8;
 //double NUMU_PANDIZZLE_CUT = 0.40;
 
 // cheat CC electron refinement - REDO
+//double NUE_JAM_PANDRIZZLE_CUT = 1.0;
 //double NUE_PANDRIZZLE_CUT = 0.744;
 //double NUE_PANDIZZLE_CUT = 0.676;
 //double NUMU_PANDIZZLE_CUT = 0.34;
 
+// cheat pandora gamma vertex refinement plus nu vertex
+//double NUE_JAM_PANDRIZZLE_CUT = 1.0;
+//double NUE_PANDRIZZLE_CUT = 0.752;
+//double NUE_PANDIZZLE_CUT = 0.832;
+//double NUMU_PANDIZZLE_CUT = 0.30;
+
 // cheat CC electron plus gamma refinement - REDO
+//double NUE_JAM_PANDRIZZLE_CUT = 1.0;
 //double NUE_PANDRIZZLE_CUT = 0.812;
 //double NUE_PANDIZZLE_CUT = 0.808;
 //double NUMU_PANDIZZLE_CUT = 0.38;
@@ -111,6 +124,7 @@ double NUE_SHOWER_SEP_CUT = 4.8;
 //double NUMU_PANDIZZLE_CUT = 0.4;
 
 // 7 sigma coverage - subset train (CURRENT STANDARD)
+//double NUE_JAM_PANDRIZZLE_CUT = 1.0;
 //double NUE_PANDRIZZLE_CUT = 0.418;
 //double NUE_PANDIZZLE_CUT = 0.712;
 //double NUMU_PANDIZZLE_CUT = 0.34;
@@ -126,6 +140,7 @@ double NUE_SHOWER_SEP_CUT = 4.8;
 //double NUMU_PANDIZZLE_CUT = 0.32;
 
 // cheat muon reco
+//double NUE_JAM_PANDRIZZLE_CUT = 1.0;
 //double NUE_PANDRIZZLE_CUT = 0.476;
 //double NUE_PANDIZZLE_CUT = 0.656;
 //double NUMU_PANDIZZLE_CUT = 0.48;
@@ -151,6 +166,7 @@ double NUE_SHOWER_SEP_CUT = 4.8;
 //double NUMU_PANDIZZLE_CUT = 0.42;
 
 // cheat electron gamma plus vertex
+//double NUE_JAM_PANDRIZZLE_CUT = 1.0;
 //double NUE_PANDRIZZLE_CUT = 0.864;
 //double NUE_PANDIZZLE_CUT = 0.7;
 //double NUMU_PANDIZZLE_CUT = 0.42;
@@ -174,11 +190,6 @@ double NUE_SHOWER_SEP_CUT = 4.8;
 //double NUE_PANDRIZZLE_CUT = 0.72;
 //double NUE_PANDIZZLE_CUT = 0.74;
 //double NUMU_PANDIZZLE_CUT = 0.4;
-
-// cheat pandora gamma vertex refinement plus nu vertex
-//double NUE_PANDRIZZLE_CUT = 0.752;
-//double NUE_PANDIZZLE_CUT = 0.832;
-//double NUMU_PANDIZZLE_CUT = 0.30;
 
 // hybrid electron extension plus nu vertex
 //double NUE_PANDRIZZLE_CUT = 0.56;
@@ -255,12 +266,71 @@ double NUE_SHOWER_SEP_CUT = 4.8;
 //double NUE_PANDIZZLE_CUT = 0.86;
 //double NUMU_PANDIZZLE_CUT = 0.32;
 
-// real electron extension 100 + BOTH BDTS
-double NUE_JAM_PANDRIZZLE_CUT = 0.28;
-double NUE_JAM_PANDIZZLE_CUT = 0.86;
-double NUE_PANDRIZZLE_CUT = 0.91;
-double NUE_PANDIZZLE_CUT = 0.64;
-double NUMU_PANDIZZLE_CUT = 0.40;
+// real electron extension 100 + BOTH BDTS (M02 CUT)
+//double NUE_JAM_PANDRIZZLE_CUT = 0.35;
+//double NUE_PANDRIZZLE_CUT = 0.90;
+//double NUE_PANDIZZLE_CUT = 0.90;
+//double NUMU_PANDIZZLE_CUT = 0.32;
+
+// real electron extension 100 + BOTH BDTS (M01 CUT)
+//double NUE_JAM_PANDRIZZLE_CUT = 0.30;
+//double NUE_PANDRIZZLE_CUT = 0.90;
+//double NUE_PANDIZZLE_CUT = 0.85;
+//double NUMU_PANDIZZLE_CUT = 0.40;
+
+// real electron extension 100 + BOTH BDTS (00 CUT)
+//double NUE_JAM_PANDRIZZLE_CUT = 0.25;
+//double NUE_PANDRIZZLE_CUT = 0.90;
+//double NUE_PANDIZZLE_CUT = 0.85;
+//double NUMU_PANDIZZLE_CUT = 0.36;
+
+// real electron extension 100 + BOTH BDTS (01 CUT)
+//double NUE_JAM_PANDRIZZLE_CUT = 0.50;
+//double NUE_PANDRIZZLE_CUT = 0.95;
+//double NUE_PANDIZZLE_CUT = 0.95;
+//double NUMU_PANDIZZLE_CUT = 0.32;
+
+// real electron extension 100 + BOTH BDTS (02 CUT)
+//double NUE_JAM_PANDRIZZLE_CUT = 0.2;
+//double NUE_PANDRIZZLE_CUT = 0.90;
+//double NUE_PANDIZZLE_CUT = 0.75;
+//double NUMU_PANDIZZLE_CUT = 0.36;
+
+// real electron extension 100 (02 CUT)
+//double NUE_JAM_PANDRIZZLE_CUT = 1.0;
+//double NUE_PANDRIZZLE_CUT = 0.52;
+//double NUE_PANDIZZLE_CUT = 0.74;
+//double NUMU_PANDIZZLE_CUT = 0.36;
+
+// real electron extension 25 + BOTH BDTS + MODULAR SHOWER VARS (02 CUT)
+//double NUE_JAM_PANDRIZZLE_CUT = 0.4;
+//double NUE_PANDRIZZLE_CUT = 0.925;
+//double NUE_PANDIZZLE_CUT = 0.90;
+//double NUMU_PANDIZZLE_CUT = 0.36;
+
+// real electron extension standard vertexing 25 + BOTH BDTS + MODULAR SHOWER VARS (01 CUT)
+//double NUE_JAM_PANDRIZZLE_CUT = 0.40;
+//double NUE_PANDRIZZLE_CUT = 0.70;
+//double NUE_PANDIZZLE_CUT = 0.90;
+//double NUMU_PANDIZZLE_CUT = 0.34;
+
+// real electron extension standard vertexing 25 + BOTH BDTS + MODULAR SHOWER VARS (02 CUT)
+//double NUE_JAM_PANDRIZZLE_CUT = 0.25;
+//double NUE_PANDRIZZLE_CUT = 0.775;
+//double NUE_PANDIZZLE_CUT = 0.85;
+//double NUMU_PANDIZZLE_CUT = 0.34;
+
+// real electron extension standard vertexing 25 + BOTH BDTS + MODULAR SHOWER VARS (03 CUT)
+//double NUE_JAM_PANDRIZZLE_CUT = 0.325;
+//double NUE_PANDRIZZLE_CUT = 0.775;
+//double NUE_PANDIZZLE_CUT = 0.90;
+//double NUMU_PANDIZZLE_CUT = 0.34;
+
+// real electron extension standard vertexing 25 + BOTH BDTS + MODULAR SHOWER VARS (04 CUT)
+//double NUE_JAM_PANDRIZZLE_CUT = 0.10;
+//double NUE_PANDRIZZLE_CUT = 0.625;
+//double NUE_PANDIZZLE_CUT = 0.85;
+//double NUMU_PANDIZZLE_CUT = 0.44;
 
 //////////////////////////////////////////////////////////////////////
 // RHC

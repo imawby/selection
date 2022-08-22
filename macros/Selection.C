@@ -45,7 +45,7 @@ bool PassNueJamSelection(const NeutrinoEvent &nu, const bool isNu)
         return false;
 
     // does it pass the jam-enhanced pandrizzle cuts?    
-    const double nueJamPandizzleCut(isNu ? NUE_JAM_PANDIZZLE_CUT : ANUE_JAM_PANDIZZLE_CUT);
+    const double nueJamPandizzleCut(isNu ? NUE_PANDIZZLE_CUT : ANUE_PANDIZZLE_CUT);
     const double nueJamPandrizzleCut(isNu ? NUE_JAM_PANDRIZZLE_CUT : ANUE_JAM_PANDRIZZLE_CUT);
 
     if ((nu.m_selShowerJamPandrizzleScore > nueJamPandrizzleCut) && (nu.m_selTrackPandizzleScore < nueJamPandizzleCut))

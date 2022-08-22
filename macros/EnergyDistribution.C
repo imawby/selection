@@ -20,9 +20,9 @@ void EnergyDistribution(const std::string &inputFileName_beam, const std::string
 
 void PlotEnergyDistribution(NeutrinoEventVector &nuEventVector_beam, NeutrinoEventVector &nuEventVector_full)
 {
-    int nBins = 40;
+    int nBins = 32;
     double xMin = 0.0;
-    double xMax = 10.0;
+    double xMax = 8.0;
 
     TH1D * beam_noOscillations = new TH1D("beam_noOscillations", "beam_noOscillations", nBins, xMin, xMax);
     TH1D * full_noOscillations = new TH1D("full_oOscillations", "full_noOscillations", nBins, xMin, xMax);
@@ -72,12 +72,18 @@ void PlotEnergyDistribution(NeutrinoEventVector &nuEventVector_beam, NeutrinoEve
             continue;
         */
 
-        if (!IsNumuSelected(nu))
+        /*
+        if (!IsNumuSelected(nu, true))
+            continue;
+        */
+
+        if (!IsNueSelected(nu, true))
             continue;
 
         pot->Fill(nu.m_projectedPOTWeight);
 
-        const double plottingEnergy = nu.m_numuRecoENu < 0.0 ? 0.0 : nu.m_numuRecoENu;
+        //const double plottingEnergy = nu.m_numuRecoENu < 0.0 ? 0.0 : nu.m_numuRecoENu;
+        const double plottingEnergy = nu.m_nueRecoENu < 0.0 ? 0.0 : nu.m_nueRecoENu;
         //const double plottingEnergy = nu.m_eNu;
 
         if (nu.m_numuRecoENu < 0.0)
@@ -93,7 +99,7 @@ void PlotEnergyDistribution(NeutrinoEventVector &nuEventVector_beam, NeutrinoEve
 
     //beam_noOscillations->SetLineColor(kBlack);
     full_noOscillations->SetLineColor(kBlue);
-    full_oscillations->SetLineColor(kRed);
+    full_oscillations->SetLineColor(kBlue);
 
     full_noOscillations->SetTitle("NC;TrueNeutrinoEnergy [GeV]; nEvents");
     //beam_noOscillations->Draw("hist same");
@@ -105,6 +111,10 @@ void PlotEnergyDistribution(NeutrinoEventVector &nuEventVector_beam, NeutrinoEve
     pandrizzleLegend->AddEntry(full_noOscillations, "full_noOscillations", "l");
     pandrizzleLegend->AddEntry(full_oscillations, "full_oscillations", "l");
     pandrizzleLegend->Draw("same");
+
+    TCanvas * cEnergy = new TCanvas("cEnergy", "cEnergy");
+    full_oscillations->SetTitle(";Reco Energy [GeV];nEntries");
+    full_oscillations->Draw("hist");
 }
 
 //------------------------------------------------------------------------------------------------------------------------------------------

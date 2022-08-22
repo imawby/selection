@@ -6,6 +6,7 @@
 bool PERFORM_CVN_SELECTION = false;
 bool PERFORM_OLD_NUE_SELECTION = false;
 bool IS_NEUTRINO = true;
+const bool IS_JAM_SELECTION = false;
 
 void NuSelection(const std::string &inputFileName)
 {
@@ -22,11 +23,7 @@ void NuSelection(const std::string &inputFileName)
     NuSelectionHistogramCollection numuHistogramCollection;
     InitialiseNuSelectionHistogramCollection(numuHistogramCollection, "numu");
 
-    // Find events to pass
-    std::vector<int> eventsToPass;
-    //FindEventsToPass(neutrinoEventVector, eventsToPass);
-
-    PerformSelection(neutrinoEventVector, nueHistogramCollection, numuHistogramCollection, eventsToPass);
+    PerformSelection(neutrinoEventVector, nueHistogramCollection, numuHistogramCollection);
 
     ProcessHistogramCollection(nueHistogramCollection);
     ProcessHistogramCollection(numuHistogramCollection);
@@ -46,7 +43,7 @@ void NuSelection(const std::string &inputFileName)
 
 void InitialiseNuSelectionHistogramCollection(NuSelectionHistogramCollection &nuSelectionHistogramCollection, const std::string &histPrefix)
 {
-    InitialiseNuSelectionHistograms(nuSelectionHistogramCollection.m_eNuHists, histPrefix + "_ENu", 50, 0.0, 10.0);
+    InitialiseNuSelectionHistograms(nuSelectionHistogramCollection.m_eNuHists, histPrefix + "_ENu", 32, 0.0, 8.0);
     InitialiseNuSelectionHistograms(nuSelectionHistogramCollection.m_qSqrHists, histPrefix + "_QSqr", 50, 0.0, 10.0);
     InitialiseNuSelectionHistograms(nuSelectionHistogramCollection.m_lepMomHists, histPrefix + "_LepMom", 50, 0.0, 10.0);
     InitialiseNuSelectionHistograms(nuSelectionHistogramCollection.m_lepNuOpeningAngleHists, histPrefix + "_LepNuOpeningAngle", 50, 0.0, 18.0);
@@ -65,12 +62,13 @@ void InitialiseNuSelectionHistograms(NuSelectionHistograms &nuSelectionHistogram
     nuSelectionHistograms.m_efficiency = new TH1D((histPrefix + "_Efficiency").c_str(), (histPrefix + "_Efficiency").c_str(), nBins, xMin, xMax);
     nuSelectionHistograms.m_purity = new TH1D((histPrefix + "_Purity").c_str(), (histPrefix + "_Purity").c_str(), nBins, xMin, xMax);
     nuSelectionHistograms.m_backgroundRejection = new TH1D((histPrefix + "_BackgroundRejection").c_str(), (histPrefix + "_BackgroundRejection").c_str(), nBins, xMin, xMax);
+    nuSelectionHistograms.m_selectedRecoEnergy = new TH1D((histPrefix + "_SelectedRecoEnergy").c_str(), (histPrefix + "_SelectedRecoEnergy").c_str(), nBins, xMin, xMax);
 }
 
 //------------------------------------------------------------------------------------------------------------------------------------------
 
 void PerformSelection(const NeutrinoEventVector &nuVector, NuSelectionHistogramCollection &nueSelectionHistogramCollection, 
-                      NuSelectionHistogramCollection &numuSelectionHistogramCollection, std::vector<int> eventsToPass)
+    NuSelectionHistogramCollection &numuSelectionHistogramCollection)
 {
     double nueSignal(0.0), nueBackground(0.0), nueSelected(0.0), nueSignalSelected(0.0), nueFlavourSignalSelected(0.0), nueBackgroundRejected(0.0);
     double numuSignal(0.0), numuBackground(0.0), numuSelected(0.0), numuSignalSelected(0.0), numuFlavourSignalSelected(0.0), numuBackgroundRejected(0.0);
@@ -115,10 +113,7 @@ void PerformSelection(const NeutrinoEventVector &nuVector, NuSelectionHistogramC
             numuSelectionHistogramCollection.m_lepNuOpeningAngleHists.m_signal->Fill(nu.m_lepNuOpeningAngle, weight);
         }
 
-        bool passNueSelection(PERFORM_CVN_SELECTION ? PassCVNNueSelection(nu) : (PERFORM_OLD_NUE_SELECTION ? PassOldNueSelection(nu, IS_NEUTRINO) : PassNueSelection(nu, IS_NEUTRINO)));
-
-        if (std::find(eventsToPass.begin(), eventsToPass.end(), i) != eventsToPass.end())
-            passNueSelection = false;
+        bool passNueSelection(PERFORM_CVN_SELECTION ? PassCVNNueSelection(nu) : IsNueSelected(nu, IS_NEUTRINO, IS_JAM_SELECTION));
 
         // Apply Selection
         if (passNueSelection)
@@ -128,6 +123,7 @@ void PerformSelection(const NeutrinoEventVector &nuVector, NuSelectionHistogramC
             nueSelectionHistogramCollection.m_qSqrHists.m_selected->Fill(nu.m_qSqr, weight);
             nueSelectionHistogramCollection.m_lepMomHists.m_selected->Fill(nu.m_lepMom, weight);
             nueSelectionHistogramCollection.m_lepNuOpeningAngleHists.m_selected->Fill(nu.m_lepNuOpeningAngle, weight);
+            nueSelectionHistogramCollection.m_eNuHists.m_selectedRecoEnergy->Fill(nu.m_nueRecoENu, weight);
 
             // To be used as numerator in efficiency
             if (isNueCCSignal)
@@ -171,7 +167,7 @@ void PerformSelection(const NeutrinoEventVector &nuVector, NuSelectionHistogramC
                 numuSelectionHistogramCollection.m_lepNuOpeningAngleHists.m_background->Fill(nu.m_lepNuOpeningAngle, weight);
             }
 
-            const bool passNumuSelection(PERFORM_CVN_SELECTION ? PassCVNNumuSelection(nu) : PassNumuSelection(nu, IS_NEUTRINO));
+            const bool passNumuSelection(PERFORM_CVN_SELECTION ? PassCVNNumuSelection(nu) : IsNumuSelected(nu, IS_NEUTRINO, IS_JAM_SELECTION));
 
             if (passNumuSelection)
             {
@@ -180,6 +176,7 @@ void PerformSelection(const NeutrinoEventVector &nuVector, NuSelectionHistogramC
                 numuSelectionHistogramCollection.m_qSqrHists.m_selected->Fill(nu.m_qSqr, weight);
                 numuSelectionHistogramCollection.m_lepMomHists.m_selected->Fill(nu.m_lepMom, weight);
                 numuSelectionHistogramCollection.m_lepNuOpeningAngleHists.m_selected->Fill(nu.m_lepNuOpeningAngle, weight);
+                numuSelectionHistogramCollection.m_eNuHists.m_selectedRecoEnergy->Fill(nu.m_numuRecoENu, weight);
 
                 // To be used as numerator in efficiency
                 if (isNumuCCSignal)
@@ -288,15 +285,90 @@ void DrawHistogramCollection(NuSelectionHistogramCollection &nuSelectionHistogra
 {
     gStyle->SetOptStat(0);
 
-    TCanvas * c1 = new TCanvas(histPrefix.c_str(), histPrefix.c_str());
+    TCanvas * c1 = new TCanvas(("SelectedHistogramGlobal_True" + histPrefix).c_str(), ("SelectedHistogramGlobal_True" + histPrefix).c_str());
+
+    nuSelectionHistogramCollection.m_eNuHists.m_signal->SetTitle(";True Neutrino Energy [GeV];nEvents");
+
+    nuSelectionHistogramCollection.m_eNuHists.m_signal->SetLineWidth(2);
+    nuSelectionHistogramCollection.m_eNuHists.m_signal->SetLineColor(kBlack);
+    nuSelectionHistogramCollection.m_eNuHists.m_signal->SetFillColor(kGray);
+    nuSelectionHistogramCollection.m_eNuHists.m_selected->SetLineWidth(2);
+    nuSelectionHistogramCollection.m_eNuHists.m_selected->SetLineColor(kBlue);
+
+    nuSelectionHistogramCollection.m_eNuHists.m_signal->Draw("hist");
+    nuSelectionHistogramCollection.m_eNuHists.m_selected->Draw("hist same");
+
+    auto legendTrue = new TLegend(0.1,0.7,0.48,0.9);
+    legendTrue->AddEntry(nuSelectionHistogramCollection.m_eNuHists.m_signal, "Signal", "l");
+    legendTrue->AddEntry(nuSelectionHistogramCollection.m_eNuHists.m_selected, "Selected", "l");
+    legendTrue->Draw("same");
+    //
+
+    /*    
+    TCanvas * c2 = new TCanvas(("SelectedHistogramGlobal_Reco" + histPrefix).c_str(), ("SelectedHistogramGlobal_Reco" + histPrefix).c_str());
+
+    nuSelectionHistogramCollection.m_eNuHists.m_signal->SetTitle(";True/Reconstructed Neutrino Energy [GeV];nEvents");
+
+    nuSelectionHistogramCollection.m_eNuHists.m_signal->SetLineWidth(2);
+    nuSelectionHistogramCollection.m_eNuHists.m_signal->SetLineColor(kBlack);
+    nuSelectionHistogramCollection.m_eNuHists.m_signal->SetFillColor(kGray);
+    nuSelectionHistogramCollection.m_eNuHists.m_selectedRecoEnergy->SetLineWidth(2);
+    nuSelectionHistogramCollection.m_eNuHists.m_selectedRecoEnergy->SetLineColor(kBlue);
+
+    nuSelectionHistogramCollection.m_eNuHists.m_signal->Draw("hist");
+    nuSelectionHistogramCollection.m_eNuHists.m_selectedRecoEnergy->Draw("hist same");
+
+    auto legendReco = new TLegend(0.1,0.7,0.48,0.9);
+    legendReco->AddEntry(nuSelectionHistogramCollection.m_eNuHists.m_signal, "Signal", "l");
+    legendReco->AddEntry(nuSelectionHistogramCollection.m_eNuHists.m_selectedRecoEnergy, "Selected", "l");
+    legendReco->Draw("same");
+    */
+
+    TCanvas * c3 = new TCanvas(("SelectedHistogramShape" + histPrefix).c_str(), ("SelectedHistogramShape" + histPrefix).c_str());
+
+    TH1D * normalisedTrueDistribution = (TH1D*)nuSelectionHistogramCollection.m_eNuHists.m_signal->Clone();
+    normalisedTrueDistribution->Scale(1.0 / normalisedTrueDistribution->Integral(1,32));
+
+    TH1D * normalisedSelectedDistribution = (TH1D*)nuSelectionHistogramCollection.m_eNuHists.m_selectedRecoEnergy->Clone();
+    normalisedSelectedDistribution->Scale(1.0 / normalisedSelectedDistribution->Integral(1,32));
+
+    normalisedTrueDistribution->SetTitle(";True/Reco Neutrino Energy [GeV];Fraction of Events");
+    normalisedTrueDistribution->SetLineWidth(2);
+    normalisedTrueDistribution->SetLineColor(kBlack);
+    normalisedTrueDistribution->SetFillColor(kGray);
+    normalisedSelectedDistribution->SetLineWidth(2);
+    normalisedSelectedDistribution->SetLineColor(kBlue);
+
+    normalisedTrueDistribution->Draw("hist");
+    normalisedSelectedDistribution->Draw("hist same");
+
+    auto legendShape = new TLegend(0.1,0.7,0.48,0.9);
+    legendShape->AddEntry(normalisedTrueDistribution, "Normalised Signal", "l");
+    legendShape->AddEntry(normalisedSelectedDistribution, "Normalised Selected", "l");
+    legendShape->Draw("same");
+
+    TCanvas * c4 = new TCanvas(("SelectionMetrics" + histPrefix).c_str(), ("SelectionMetrics" + histPrefix).c_str());
 
     TH1D * scaledEnergyDistribution = (TH1D*) nuSelectionHistogramCollection.m_eNuHists.m_signal->Clone();
-    scaledEnergyDistribution->Scale(1.0/scaledEnergyDistribution->Integral());
 
-    scaledEnergyDistribution->GetYaxis()->SetRangeUser(0.0, 1.0);
-    scaledEnergyDistribution->SetTitle(";TrueNeutrinoEnergy;Arbritray Units");
+    float highestBinWeight(0);
+    for (int i = 1; i <= scaledEnergyDistribution->GetNbinsX(); ++i)
+    {
+        if (scaledEnergyDistribution->GetBinContent(i) > highestBinWeight)
+            highestBinWeight = scaledEnergyDistribution->GetBinContent(i);
+    }
+
+    for (int i = 1; i <= scaledEnergyDistribution->GetNbinsX(); ++i)
+    {
+        float scaledWeight(scaledEnergyDistribution->GetBinContent(i) / highestBinWeight);
+        scaledEnergyDistribution->SetBinContent(i, scaledWeight);
+    }
+
+    scaledEnergyDistribution->GetYaxis()->SetRangeUser(0.0, 1.1);
+    scaledEnergyDistribution->SetTitle(";True Neutrino Energy [GeV];Arbritray Units");
     scaledEnergyDistribution->SetFillColor(kGray);
-    scaledEnergyDistribution->SetLineColor(kGray);
+    scaledEnergyDistribution->SetLineColor(kBlack);
+    scaledEnergyDistribution->SetLineWidth(2);
 
     nuSelectionHistogramCollection.m_eNuHists.m_purity->SetMarkerColor(kRed);
     nuSelectionHistogramCollection.m_eNuHists.m_purity->SetMarkerStyle(8);
@@ -314,9 +386,10 @@ void DrawHistogramCollection(NuSelectionHistogramCollection &nuSelectionHistogra
     nuSelectionHistogramCollection.m_eNuHists.m_backgroundRejection->Draw("P same");
 
     auto legend = new TLegend(0.1,0.7,0.48,0.9);
-    legend->AddEntry(nuSelectionHistogramCollection.m_eNuHists.m_purity, "purity", "p");
-    legend->AddEntry(nuSelectionHistogramCollection.m_eNuHists.m_efficiency, "efficiency", "p");
-    legend->AddEntry(nuSelectionHistogramCollection.m_eNuHists.m_backgroundRejection, "background rejection", "p");
+    legend->AddEntry(nuSelectionHistogramCollection.m_eNuHists.m_efficiency, "Selection Efficiency", "p");
+    legend->AddEntry(nuSelectionHistogramCollection.m_eNuHists.m_purity, "Selection Purity", "p");
+    legend->AddEntry(nuSelectionHistogramCollection.m_eNuHists.m_backgroundRejection, "Selection Background Rejection", "p");
+    //legend->SetBorderSize(0);
     legend->Draw("same");
 }
 
@@ -334,6 +407,7 @@ void WriteHistogramCollection(NuSelectionHistogramCollection &nuSelectionHistogr
     nuSelectionHistogramCollection.m_eNuHists.m_efficiency->Write((histPrefix + "eNuHist_efficiency").c_str());
     nuSelectionHistogramCollection.m_eNuHists.m_purity->Write((histPrefix + "eNuHist_purity").c_str());
     nuSelectionHistogramCollection.m_eNuHists.m_backgroundRejection->Write((histPrefix + "eNuHist_backgroundRejection").c_str());
+    nuSelectionHistogramCollection.m_eNuHists.m_selectedRecoEnergy->Write((histPrefix + "eNuHist_electedRecoEnergy").c_str());
 }
 
 //------------------------------------------------------------------------------------------------------------------------------------------

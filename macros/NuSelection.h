@@ -26,6 +26,7 @@ public:
     TH1D *m_efficiency;
     TH1D *m_purity;
     TH1D *m_backgroundRejection;
+    TH1D *m_selectedRecoEnergy;
 };
 
 //------------------------------------------------------------------------------------------------------------------------------------------
@@ -46,8 +47,7 @@ public:
 void NuSelection(const std::string &inputFile);
 void InitialiseNuSelectionHistogramCollection(NuSelectionHistogramCollection &nuSelectionHistogramCollection, const std::string &histPrefix);
 void InitialiseNuSelectionHistograms(NuSelectionHistograms &nuSelectionHistograms, const std::string &histPrefix, const unsigned int nBins, const float xMin, const float xMax);
-void PerformSelection(const NeutrinoEventVector &nuVector, NuSelectionHistogramCollection &nueSelectionHistogramCollection, NuSelectionHistogramCollection &numuSelectionHistogramCollection,
-                      std::vector<int> eventsToPass);
+void PerformSelection(const NeutrinoEventVector &nuVector, NuSelectionHistogramCollection &nueSelectionHistogramCollection, NuSelectionHistogramCollection &numuSelectionHistogramCollection);
 void ProcessHistogramCollection(NuSelectionHistogramCollection &nuSelectionHistogramCollection);
 void ProcessHistograms(NuSelectionHistograms &nuSelectionHistograms);
 void DrawHistogramCollection(NuSelectionHistogramCollection &nuSelectionHistogramCollection, const std::string &histPrefix);
@@ -67,7 +67,8 @@ NuSelectionHistograms::NuSelectionHistograms() :
     m_backgroundRejected(nullptr),
     m_efficiency(nullptr),
     m_purity(nullptr),
-    m_backgroundRejection(nullptr)
+    m_backgroundRejection(nullptr), 
+    m_selectedRecoEnergy(nullptr)
 {
 }
 

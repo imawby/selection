@@ -3,6 +3,7 @@
 #include "Selection.C"
 
 void NumuBackground(const std::string &inputFileName);
+void SelectedPlots(const NeutrinoEventVector &nuVector);
 void SelectedBackgroundPlots(const NeutrinoEventVector &nuVector);
 //void SelectedNumuBackgroundPlots(const NeutrinoEventVector &nuVector);
 void RejectedSignalPlots(const NeutrinoEventVector &nuVector);
@@ -12,6 +13,7 @@ double GetOscWeight(const NeutrinoEvent &nu);
 
 bool PERFORM_OLD_NUE_SELECTION = false;
 bool IS_NEUTRINO = false;
+bool IS_JAM_SELECTION = false;
 
 void NumuBackground(const std::string &inputFileName)
 {
@@ -20,7 +22,10 @@ void NumuBackground(const std::string &inputFileName)
     NeutrinoEventVector neutrinoEventVector;
     ReadFile(inputFileName, neutrinoEventVector);
 
-    SelectedBackgroundPlots(neutrinoEventVector);
+    std::cout << "HERE AAAA" << std::endl;
+
+    SelectedPlots(neutrinoEventVector);
+    //SelectedBackgroundPlots(neutrinoEventVector);
     //SelectedNumuBackgroundPlots(neutrinoEventVector);
     //RejectedSignalPlots(neutrinoEventVector);
     //RejectedSignalNumuLengthPlots(neutrinoEventVector);
@@ -29,11 +34,261 @@ void NumuBackground(const std::string &inputFileName)
 
 //------------------------------------------------------------------------------------------------------------------------------------------
 
+void SelectedPlots(const NeutrinoEventVector &nuVector)
+{
+
+    std::cout << "HERE BBBBB" << std::endl;
+
+    // Flavour background
+    int nEnergyBins(32);
+    double minEnergy(0.0), maxEnergy(8.0);
+
+    double numuCount(0.0), numuFVCount(0.0), nueCount(0.0), nutauCount(0.0), ncCount(0.0);
+    TH1D * numuSelected_True = new TH1D("numuSelected_True", "numuSelected_True", nEnergyBins, minEnergy, maxEnergy);
+    TH1D * numuFVSelected_True = new TH1D("numuFVSelected_True", "numuFVSelected_True", nEnergyBins, minEnergy, maxEnergy); // out of FV anumu/numu
+    TH1D * nueSelected_True = new TH1D("nueSelected_True", "nueSelected_True", nEnergyBins, minEnergy, maxEnergy);
+    TH1D * nutauSelected_True = new TH1D("nutauSelected_True", "nutauSelected_True", nEnergyBins, minEnergy, maxEnergy);
+    TH1D * ncSelected_True = new TH1D("ncSelected_True", "ncSelected_True", nEnergyBins, minEnergy, maxEnergy);
+
+    TH1D * numuSelected_Reco = new TH1D("numuSelected_Reco", "numuSelected_Reco", nEnergyBins, minEnergy, maxEnergy);
+    TH1D * numuFVSelected_Reco = new TH1D("numuFVSelected_Reco", "numuFVSelected_Reco", nEnergyBins, minEnergy, maxEnergy); // out of FV anumu/numu
+    TH1D * nueSelected_Reco = new TH1D("nueSelected_Reco", "nueSelected_Reco", nEnergyBins, minEnergy, maxEnergy);
+    TH1D * nutauSelected_Reco = new TH1D("nutauSelected_Reco", "nutauSelected_Reco", nEnergyBins, minEnergy, maxEnergy);
+    TH1D * ncSelected_Reco = new TH1D("ncSelected_Reco", "ncSelected_Reco", nEnergyBins, minEnergy, maxEnergy);
+
+    // Selected track PDG
+    int nPandizzleBins(50);
+    double minPandizzle(-1.0), maxPandizzle(1.0);
+
+    double electronCount(0.0), muonCount(0.0), photonCount(0.0), pionCount(0.0), protonCount(0.0), otherCount(0.0), noTrackCount(0.0);
+    TH1D * electron = new TH1D("electron", "electron", nPandizzleBins, minPandizzle, maxPandizzle);
+    TH1D * muon = new TH1D("muon", "muon", nPandizzleBins, minPandizzle, maxPandizzle);
+    TH1D * photon = new TH1D("photon", "photon", nPandizzleBins, minPandizzle, maxPandizzle);
+    TH1D * pion = new TH1D("pion", "pion", nPandizzleBins, minPandizzle, maxPandizzle); //charged pions (neutral pions are invisible anyway..)
+    TH1D * proton = new TH1D("proton", "proton", nPandizzleBins, minPandizzle, maxPandizzle);
+    TH1D * other = new TH1D("other", "other", nPandizzleBins, minPandizzle, maxPandizzle);
+
+
+    double selected(0);
+
+    for (const NeutrinoEvent &nu : nuVector)
+    {
+        // Apply numu selection
+        if (IsNumuSelected(nu, IS_NEUTRINO, IS_JAM_SELECTION))
+        {
+            const double weight(nu.m_projectedPOTWeight * (nu.m_isNC ? 1.0 : GetOscWeight(nu)));
+            selected += weight;
+
+            if (nu.m_isNC)
+            {
+                ncCount += weight;
+                ncSelected_True->Fill(nu.m_eNu, weight);
+                ncSelected_Reco->Fill(nu.m_numuRecoENu, weight);
+            }
+            else if ((std::abs(nu.m_nuPdg) == 14) && (IsNumuFlavourCCSignal(nu)))
+            {
+                numuCount += weight;
+                numuSelected_True->Fill(nu.m_eNu, weight);
+                numuSelected_Reco->Fill(nu.m_numuRecoENu, weight);
+            }
+            else if (std::abs(nu.m_nuPdg) == 14)
+            {
+                numuFVCount += weight;
+                numuFVSelected_True->Fill(nu.m_eNu, weight);
+                numuFVSelected_Reco->Fill(nu.m_numuRecoENu, weight);
+            }
+            else if (std::abs(nu.m_nuPdg) == 12)
+            {
+                nueCount += weight;
+                nueSelected_True->Fill(nu.m_eNu, weight);
+                nueSelected_Reco->Fill(nu.m_numuRecoENu, weight);
+            }
+            else if (std::abs(nu.m_nuPdg) == 16)
+            {
+                nutauCount += weight;
+                nutauSelected_True->Fill(nu.m_eNu, weight);
+                nutauSelected_Reco->Fill(nu.m_numuRecoENu, weight);
+            }
+            else
+            {
+                std::cout << "what is this" << std::endl;
+                throw;
+            }
+
+            if (std::abs(nu.m_selTrackTruePdg) == 11)
+            {
+                electronCount += weight;
+                electron->Fill(nu.m_selTrackPandizzleScore, weight);
+            }
+            else if (std::abs(nu.m_selTrackTruePdg) == 13)
+            {
+                muonCount += weight;
+                muon->Fill(nu.m_selTrackPandizzleScore, weight);
+            }
+            else if (nu.m_selTrackTruePdg == 22)
+            {
+                photonCount += weight;
+                photon->Fill(nu.m_selTrackPandizzleScore, weight);
+            }
+            else if (std::abs(nu.m_selTrackTruePdg) == 211)
+            {
+                pionCount += weight;
+                pion->Fill(nu.m_selTrackPandizzleScore, weight);
+            }
+            else if (nu.m_selTrackTruePdg == 2212)
+            {
+                protonCount += weight;
+                proton->Fill(nu.m_selTrackPandizzleScore, weight);
+            }
+            else if (nu.m_selTrackTruePdg == -9999)
+            {
+                noTrackCount += weight;
+            }
+            else
+            {
+                otherCount += weight;
+                other->Fill(nu.m_selTrackPandizzleScore, weight);
+            }
+        }
+    }
+
+    // Integrated flavour metrics
+    std::cout << "////////////////////////////////////////////" << std::endl;
+    std::cout << "numu/anumu: " << numuCount * 100/selected << "%" << std::endl;
+    std::cout << "Out of FV anumu/numu: " << numuFVCount * 100/selected << "%" << std::endl;
+    std::cout << "nue/anue: " << nueCount * 100/selected << "%" << std::endl;
+    std::cout << "nutau/anutau: " << nutauCount * 100/selected << "%" << std::endl;
+    std::cout << "NC: " << ncCount * 100/selected << "%" << std::endl;
+
+    // Integrated pdg metrics
+    std::cout << "////////////////////////////////////////////" << std::endl;
+    std::cout << "electron: " << electronCount * 100.0 / selected << "%" << std::endl;
+    std::cout << "muon: " << muonCount * 100.0 / selected << "%" << std::endl;
+    std::cout << "photon: " << photonCount * 100.0 / selected << "%" << std::endl;
+    std::cout << "pion: " << pionCount * 100.0 / selected << "%" << std::endl;
+    std::cout << "proton: " << protonCount * 100.0 / selected << "%" << std::endl;
+    std::cout << "no track: " << noTrackCount * 100.0 / selected << "%" << std::endl;
+    std::cout << "other: " << otherCount * 100.0 / selected << "%" << std::endl;
+
+    // Draw those histograms
+    TCanvas * c1 = new TCanvas("flavour decomposition true", "flavour decomposition true");
+
+    numuSelected_True->SetFillColor(kBlack);
+    numuFVSelected_True->SetFillColor(kGray);
+    nueSelected_True->SetFillColor(kBlue);
+    nutauSelected_True->SetFillColor(kGreen);
+    ncSelected_True->SetFillColor(kRed);
+
+    numuSelected_Reco->SetFillColor(kBlack);
+    numuFVSelected_Reco->SetFillColor(kGray);
+    nueSelected_Reco->SetFillColor(kBlue);
+    nutauSelected_Reco->SetFillColor(kGreen);
+    ncSelected_Reco->SetFillColor(kRed);
+
+    numuSelected_True->SetLineColor(kBlack);
+    numuFVSelected_True->SetLineColor(kGray);
+    nueSelected_True->SetLineColor(kBlue);
+    nutauSelected_True->SetLineColor(kGreen);
+    ncSelected_True->SetLineColor(kRed);
+
+    numuSelected_Reco->SetLineColor(kBlack);
+    numuFVSelected_Reco->SetLineColor(kGray);
+    nueSelected_Reco->SetLineColor(kBlue);
+    nutauSelected_Reco->SetLineColor(kGreen);
+    ncSelected_Reco->SetLineColor(kRed);
+
+    numuSelected_True->SetFillStyle(3144);
+    numuFVSelected_True->SetFillStyle(3144);
+    nueSelected_True->SetFillStyle(3144);
+    nutauSelected_True->SetFillStyle(3144);
+    ncSelected_True->SetFillStyle(3144);
+
+    numuSelected_Reco->SetFillStyle(3144);
+    numuFVSelected_Reco->SetFillStyle(3144);
+    nueSelected_Reco->SetFillStyle(3144);
+    nutauSelected_Reco->SetFillStyle(3144);
+    ncSelected_Reco->SetFillStyle(3144);
+
+    THStack * flavourStack_True = new THStack("flavourStack_True", ";True Neutrino Energy [GeV]; nEvents");
+    THStack * flavourStack_Reco = new THStack("flavourStack_Reco", ";Reco Neutrino Energy [GeV]; nEvents");
+
+    flavourStack_True->Add(numuSelected_True);
+    flavourStack_True->Add(nutauSelected_True);
+    flavourStack_True->Add(ncSelected_True);
+    flavourStack_True->Add(nueSelected_True);
+    flavourStack_True->Add(numuFVSelected_True);
+    flavourStack_True->Draw("hist");
+
+    auto legend_True = new TLegend(0.1,0.7,0.48,0.9);
+    legend_True->AddEntry(numuSelected_True, "CC #nu_{#mu} + CC #bar{#nu_{#mu}}", "f");
+    legend_True->AddEntry(numuFVSelected_True, "CC #nu_{#mu} + CC #bar{#nu_{#mu}} out of FV", "f");
+    legend_True->AddEntry(nueSelected_True, "CC #nu_{e} + #bar{#nu_{e}}", "f");
+    legend_True->AddEntry(nutauSelected_True, "CC #nu_{#tau} + #bar{#nu_{#tau}}", "f");
+    legend_True->AddEntry(ncSelected_True, "NC", "f");
+    legend_True->Draw("same");
+
+    TCanvas * c5 = new TCanvas("flavour decomposition reco", "flavour decomposition reco");
+
+    flavourStack_Reco->Add(numuSelected_Reco);
+    flavourStack_Reco->Add(nutauSelected_Reco);
+    flavourStack_Reco->Add(ncSelected_Reco);
+    flavourStack_Reco->Add(nueSelected_Reco);
+    flavourStack_Reco->Add(numuFVSelected_Reco);
+    flavourStack_Reco->Draw("hist");
+
+    auto legend_Reco = new TLegend(0.1,0.7,0.48,0.9);
+    legend_Reco->AddEntry(numuSelected_Reco, "CC #nu_{#mu} + CC #bar{#nu_{#mu}}", "f");
+    legend_Reco->AddEntry(numuFVSelected_Reco, "CC #nu_{#mu} + CC #bar{#nu_{#mu}} out of FV", "f");
+    legend_Reco->AddEntry(nueSelected_Reco, "CC #nu_{e} + #bar{#nu_{e}}", "f");
+    legend_Reco->AddEntry(nutauSelected_Reco, "CC #nu_{#tau} + #bar{#nu_{#tau}}", "f");
+    legend_Reco->AddEntry(ncSelected_Reco, "NC", "f");
+    legend_Reco->Draw("same");
+
+    TCanvas * c2 = new TCanvas("pdg decomposition", "pdg decomposition");
+    THStack * pdgStack = new THStack("pdgStack", "Selected Background Decomposition;Pandizzle Score;nEvents");
+
+    electron->SetFillColor(kGray);
+    muon->SetFillColor(kBlack);
+    photon->SetFillColor(kBlue);
+    pion->SetFillColor(kGreen);
+    proton->SetFillColor(kRed);
+    other->SetFillColor(kBlack);
+
+    electron->SetFillStyle(3144);
+    muon->SetFillStyle(3144);
+    photon->SetFillStyle(3144);
+    pion->SetFillStyle(3144);
+    proton->SetFillStyle(3144);
+    other->SetFillStyle(3144);
+
+    pdgStack->Add(electron);
+    pdgStack->Add(muon);
+    pdgStack->Add(photon);
+    pdgStack->Add(pion);
+    pdgStack->Add(proton);
+    pdgStack->Add(other);
+
+    pdgStack->Draw("hist");
+
+    auto legend2 = new TLegend(0.1,0.7,0.48,0.9);
+    legend2->AddEntry(electron, "e^{#pm}", "f");
+    legend2->AddEntry(muon, "#mu^{#pm}", "f");
+    legend2->AddEntry(photon, "#gamma", "f");
+    legend2->AddEntry(pion, "#pi^{#pm}", "f");
+    legend2->AddEntry(proton, "proton", "f");
+    legend2->AddEntry(other, "other", "f");
+
+    legend2->Draw("same");
+}
+
+
+//------------------------------------------------------------------------------------------------------------------------------------------
+
 void SelectedBackgroundPlots(const NeutrinoEventVector &nuVector)
 {
     // Flavour background
-    int nEnergyBins(40);
-    double minEnergy(0.0), maxEnergy(10.0);
+    int nEnergyBins(32);
+    double minEnergy(0.0), maxEnergy(8.0);
 
     double numuFVCount(0.0), nueCount(0.0), nutauCount(0.0), ncCount(0.0);
     TH1D * numuFVSelected = new TH1D("numuFVSelected", "numuFVSelected", nEnergyBins, minEnergy, maxEnergy); // out of FV anumu/numu

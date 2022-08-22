@@ -22,16 +22,17 @@ void ReadFile(const std::string &inputFileName, NeutrinoEventVector &nuEventVect
     tree->SetBranchAddress("ProjectedPOTWeight", &nu.m_projectedPOTWeight);
     tree->SetBranchAddress("TargetZ", &nu.m_target);
     tree->SetBranchAddress("Enu", &nu.m_eNu);
-    tree->SetBranchAddress("Q2", &nu.m_qSqr);
-    tree->SetBranchAddress("MomLepT", &nu.m_lepMom);
-    tree->SetBranchAddress("LepNuAngle", &nu.m_lepNuOpeningAngle);
-    tree->SetBranchAddress("RecoShowerRecoNHits", &nu.m_nPFPHits);
+
+    //tree->SetBranchAddress("Q2", &nu.m_qSqr);
+    //tree->SetBranchAddress("MomLepT", &nu.m_lepMom);
+    //tree->SetBranchAddress("LepNuAngle", &nu.m_lepNuOpeningAngle);
+    //tree->SetBranchAddress("RecoShowerRecoNHits", &nu.m_nPFPHits);
     tree->SetBranchAddress("NueRecoENu", &nu.m_nueRecoENu);
     tree->SetBranchAddress("NumuRecoENu", &nu.m_numuRecoENu);
     tree->SetBranchAddress("SelTrackTruePDG", &nu.m_selTrackTruePdg);
     tree->SetBranchAddress("SelShowerTruePDG", &nu.m_selShowerTruePdg);
-    tree->SetBranchAddress("SelTrackRecoContained", &nu.m_selTrackContained);
-    tree->SetBranchAddress("SelTrackRecoMomMethod", &nu.m_selTrackMomentumMethod);
+    //tree->SetBranchAddress("SelTrackRecoContained", &nu.m_selTrackContained);
+    //tree->SetBranchAddress("SelTrackRecoMomMethod", &nu.m_selTrackMomentumMethod);
     tree->SetBranchAddress("SelTrackRecoEndX", &nu.m_selTrackRecoEndX);
     tree->SetBranchAddress("SelTrackRecoEndY", &nu.m_selTrackRecoEndY);
     tree->SetBranchAddress("SelTrackRecoEndZ", &nu.m_selTrackRecoEndZ);
@@ -47,12 +48,14 @@ void ReadFile(const std::string &inputFileName, NeutrinoEventVector &nuEventVect
     tree->SetBranchAddress("RecoNuVtxX", &nu.m_nuRecoVertexX);
     tree->SetBranchAddress("RecoNuVtxY", &nu.m_nuRecoVertexY);
     tree->SetBranchAddress("RecoNuVtxZ", &nu.m_nuRecoVertexZ);
+    tree->SetBranchAddress("SelShowerPandrizzleMVAScore", &nu.m_selShowerPandrizzleScore);
+    tree->SetBranchAddress("SelTrackPandizzleVar", &nu.m_selTrackPandizzleScore);
+    /*
     tree->SetBranchAddress("RecoNuVtxNChildren", &nu.m_recoNuVtxNChildren);
     tree->SetBranchAddress("RecoNuVtxNTracks", &nu.m_recoNuVtxNTracks);
     tree->SetBranchAddress("RecoNuVtxNShowers", &nu.m_recoNuVtxNShowers);
-    tree->SetBranchAddress("SelTrackPandizzleVar", &nu.m_selTrackPandizzleScore);
     tree->SetBranchAddress("SelShowerJamPandrizzleMVAScore", &nu.m_selShowerJamPandrizzleScore);
-    tree->SetBranchAddress("SelShowerPandrizzleMVAScore", &nu.m_selShowerPandrizzleScore);
+
     tree->SetBranchAddress("SelShowerMVAElectron", &nu.m_selShowerElectronScore);
     tree->SetBranchAddress("SelShowerTrueStartX", &nu.m_selShowerTrueStartX);
     tree->SetBranchAddress("SelShowerTrueStartY", &nu.m_selShowerTrueStartY);
@@ -74,17 +77,17 @@ void ReadFile(const std::string &inputFileName, NeutrinoEventVector &nuEventVect
 
     tree->SetBranchAddress("NRecoTracks",&nu.m_nRecoTracks);
     tree->SetBranchAddress("NRecoShowers",&nu.m_nRecoShowers);
+    */
 
     //tree->SetBranchAddress("RecoTrackRecoEndClosestToVertexX", &nu.m_recoTrackRecoEndClosestToVertexX);
     //tree->SetBranchAddress("RecoTrackRecoEndClosestToVertexY", &nu.m_recoTrackRecoEndClosestToVertexY);
     //tree->SetBranchAddress("RecoTrackRecoEndClosestToVertexZ", &nu.m_recoTrackRecoEndClosestToVertexZ);
 
 
-    tree->SetBranchAddress("CVNResultNue", &nu.m_cvnResultNue);
-    tree->SetBranchAddress("CVNResultNumu", &nu.m_cvnResultNumu);
-    tree->SetBranchAddress("CVNResultNutau", &nu.m_cvnResultNutau);
-    tree->SetBranchAddress("CVNResultNC", &nu.m_cvnResultNC);
-
+    //tree->SetBranchAddress("CVNResultNue", &nu.m_cvnResultNue);
+    //tree->SetBranchAddress("CVNResultNumu", &nu.m_cvnResultNumu);
+    //tree->SetBranchAddress("CVNResultNutau", &nu.m_cvnResultNutau);
+    //tree->SetBranchAddress("CVNResultNC", &nu.m_cvnResultNC);
     
     // might have to shimmy these down to only store the selected electron ones? 
     /*
