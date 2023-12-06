@@ -70,6 +70,14 @@ bool PassNueSelection(const NeutrinoEvent &nu, const bool isNu)
 
     if (!IsRecoInFiducialVolume(nu))
         return false;
+ 
+    /*    
+    std::cout << "you are inestigating whether the electron-like BDT is just using the displacement variable" << std::endl;
+    std::cout << "ISOBEL MAWBY PLEASE PLEASE PLEASE PLEASE REMOVE THIS" << std::endl;
+   
+    std::cout << "nu.m_selShowerDisplacement: " << nu.m_selShowerDisplacement << std::endl;
+    return ((std::fabs(nu.m_selShowerDisplacement) < std::numeric_limits<float>::epsilon()) && (std::fabs(nu.m_selShowerdEdxBestPlane - 2.3) < std::numeric_limits<float>::epsilon()));
+    */
     
     const double nuePandizzleCut(isNu ? NUE_PANDIZZLE_CUT : ANUE_PANDIZZLE_CUT);
     const double nuePandrizzleCut(isNu ? NUE_PANDRIZZLE_CUT : ANUE_PANDRIZZLE_CUT);
@@ -81,6 +89,7 @@ bool PassNueSelection(const NeutrinoEvent &nu, const bool isNu)
         return false;
 
     return true;
+    
 }
 
 //------------------------------------------------------------------------------------------------------------------------------------------

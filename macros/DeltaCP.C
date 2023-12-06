@@ -15,6 +15,8 @@ double CalculateLogLikelihood(const double observed, const double expected);
 const bool PERFORM_CVN_SELECTION = false;
 const bool CHEAT_ENERGY = false;
 const bool IS_JAM_SELECTION = true;
+//const double POT_CONVERSION =  1.1/1.47;
+const double POT_CONVERSION =  1.0;
 
 const int N_ENERGY_BINS = 16;
 const double MIN_ENERGY = 0.0, MAX_ENERGY = 8.0;
@@ -26,6 +28,7 @@ void DeltaCP(const std::string &inputFileName_FHC, const std::string &outputFile
     std::cout << "\033[31m" << "Using " << "\033[33m" << (CHEAT_ENERGY ? "TRUE " : "RECO ") << "\033[31m" << "energy to fill spectra" << "\033[0m" << std::endl;
     std::cout << "\033[33m" << "ARE YOU SURE THAT THIS IS A FHC FILE?" << "\033[0m" << std::endl;
     std::cout << "\033[31m" << "Performing " << "\033[33m" << (IS_JAM_SELECTION ? "JAM-ENHANCED PANDRIZZE " : "PANDRIZZLE ") << "\033[31m" << "selection" << "\033[0m" << std::endl;
+    std::cout << "\033[31m" << "Applied POT scale (because i am dumb): " << "\033[33m" << POT_CONVERSION << "\033[0m" << std::endl;
 
     NeutrinoEventVector nuEventVector_FHC;
     ReadFile(inputFileName_FHC, nuEventVector_FHC);
@@ -494,7 +497,7 @@ void FillNueEnergyDistribution(const NeutrinoEventVector &nuEventVector_full, co
         if (!isNueSelected)
             continue; 
 
-        const double weight(nu.m_projectedPOTWeight * (nu.m_isNC ? 1.0 : GetOscWeight(nu, deltaCP)));
+        const double weight(nu.m_projectedPOTWeight * (nu.m_isNC ? 1.0 : GetOscWeight(nu, deltaCP)) * POT_CONVERSION);
 
         nueEnergyDistribution->Fill(CHEAT_ENERGY ? nu.m_eNu : nu.m_nueRecoENu, weight);
     }
@@ -511,7 +514,7 @@ void FillNumuEnergyDistribution(const NeutrinoEventVector &nuEventVector_full, c
         if (!isNumuSelected)
             continue;
 
-        const double weight(nu.m_projectedPOTWeight * (nu.m_isNC ? 1.0 : GetOscWeight(nu, deltaCP)));
+        const double weight(nu.m_projectedPOTWeight * (nu.m_isNC ? 1.0 : GetOscWeight(nu, deltaCP)) * POT_CONVERSION);
 
         numuEnergyDistribution->Fill(CHEAT_ENERGY ? nu.m_eNu : nu.m_numuRecoENu, weight);
     }

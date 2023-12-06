@@ -14,10 +14,12 @@ double GetOscWeight(const NeutrinoEvent &nu);
 bool PERFORM_OLD_NUE_SELECTION = false;
 bool IS_NEUTRINO = false;
 bool IS_JAM_SELECTION = false;
+const double POT_CONVERSION =  1.1/1.47;
 
 void NumuBackground(const std::string &inputFileName)
 {
     std::cout << "\033[31m" << "Performing " << "\033[33m" << (PERFORM_OLD_NUE_SELECTION ? "old " : "new ") << "\033[31m" << "nue selection" << "\033[0m" << std::endl; 
+    std::cout << "\033[31m" << "Applied POT scale (because i am dumb): " << "\033[33m" << POT_CONVERSION << "\033[0m" << std::endl;
 
     NeutrinoEventVector neutrinoEventVector;
     ReadFile(inputFileName, neutrinoEventVector);
@@ -76,7 +78,7 @@ void SelectedPlots(const NeutrinoEventVector &nuVector)
         // Apply numu selection
         if (IsNumuSelected(nu, IS_NEUTRINO, IS_JAM_SELECTION))
         {
-            const double weight(nu.m_projectedPOTWeight * (nu.m_isNC ? 1.0 : GetOscWeight(nu)));
+            const double weight(nu.m_projectedPOTWeight * (nu.m_isNC ? 1.0 : GetOscWeight(nu)) * POT_CONVERSION);
             selected += weight;
 
             if (nu.m_isNC)
@@ -173,55 +175,36 @@ void SelectedPlots(const NeutrinoEventVector &nuVector)
     // Draw those histograms
     TCanvas * c1 = new TCanvas("flavour decomposition true", "flavour decomposition true");
 
-    numuSelected_True->SetFillColor(kBlack);
-    numuFVSelected_True->SetFillColor(kGray);
-    nueSelected_True->SetFillColor(kBlue);
-    nutauSelected_True->SetFillColor(kGreen);
-    ncSelected_True->SetFillColor(kRed);
-
-    numuSelected_Reco->SetFillColor(kBlack);
-    numuFVSelected_Reco->SetFillColor(kGray);
-    nueSelected_Reco->SetFillColor(kBlue);
-    nutauSelected_Reco->SetFillColor(kGreen);
-    ncSelected_Reco->SetFillColor(kRed);
-
     numuSelected_True->SetLineColor(kBlack);
-    numuFVSelected_True->SetLineColor(kGray);
     nueSelected_True->SetLineColor(kBlue);
     nutauSelected_True->SetLineColor(kGreen);
     ncSelected_True->SetLineColor(kRed);
 
     numuSelected_Reco->SetLineColor(kBlack);
-    numuFVSelected_Reco->SetLineColor(kGray);
     nueSelected_Reco->SetLineColor(kBlue);
     nutauSelected_Reco->SetLineColor(kGreen);
     ncSelected_Reco->SetLineColor(kRed);
 
-    numuSelected_True->SetFillStyle(3144);
-    numuFVSelected_True->SetFillStyle(3144);
-    nueSelected_True->SetFillStyle(3144);
-    nutauSelected_True->SetFillStyle(3144);
-    ncSelected_True->SetFillStyle(3144);
+    nueSelected_True->SetFillColorAlpha(kBlue, 0.2);
+    numuSelected_True->SetFillColorAlpha(kBlack, 0.2);
+    nutauSelected_True->SetFillColorAlpha(kGreen, 0.2);
+    ncSelected_True->SetFillColorAlpha(kRed, 0.2);
 
-    numuSelected_Reco->SetFillStyle(3144);
-    numuFVSelected_Reco->SetFillStyle(3144);
-    nueSelected_Reco->SetFillStyle(3144);
-    nutauSelected_Reco->SetFillStyle(3144);
-    ncSelected_Reco->SetFillStyle(3144);
+    nueSelected_Reco->SetFillColorAlpha(kBlue, 0.2);
+    numuSelected_Reco->SetFillColorAlpha(kBlack, 0.2);
+    nutauSelected_Reco->SetFillColorAlpha(kGreen, 0.2);
+    ncSelected_Reco->SetFillColorAlpha(kRed, 0.2);
 
-    THStack * flavourStack_True = new THStack("flavourStack_True", ";True Neutrino Energy [GeV]; nEvents");
-    THStack * flavourStack_Reco = new THStack("flavourStack_Reco", ";Reco Neutrino Energy [GeV]; nEvents");
+    THStack * flavourStack_True = new THStack("flavourStack_True", ";True Neutrino Energy [GeV]; Number of Selected Events");
 
-    flavourStack_True->Add(numuSelected_True);
+    flavourStack_True->Add(nueSelected_True);
     flavourStack_True->Add(nutauSelected_True);
     flavourStack_True->Add(ncSelected_True);
-    flavourStack_True->Add(nueSelected_True);
-    flavourStack_True->Add(numuFVSelected_True);
+    flavourStack_True->Add(numuSelected_True);
     flavourStack_True->Draw("hist");
 
-    auto legend_True = new TLegend(0.1,0.7,0.48,0.9);
-    legend_True->AddEntry(numuSelected_True, "CC #nu_{#mu} + CC #bar{#nu_{#mu}}", "f");
-    legend_True->AddEntry(numuFVSelected_True, "CC #nu_{#mu} + CC #bar{#nu_{#mu}} out of FV", "f");
+    auto legend_True = new TLegend(0.1,0.7,0.3,0.9);
+    legend_True->AddEntry(numuSelected_True, "CC #nu_{#mu} + #bar{#nu_{#mu}}", "f");
     legend_True->AddEntry(nueSelected_True, "CC #nu_{e} + #bar{#nu_{e}}", "f");
     legend_True->AddEntry(nutauSelected_True, "CC #nu_{#tau} + #bar{#nu_{#tau}}", "f");
     legend_True->AddEntry(ncSelected_True, "NC", "f");
@@ -229,21 +212,22 @@ void SelectedPlots(const NeutrinoEventVector &nuVector)
 
     TCanvas * c5 = new TCanvas("flavour decomposition reco", "flavour decomposition reco");
 
-    flavourStack_Reco->Add(numuSelected_Reco);
+    THStack * flavourStack_Reco = new THStack("flavourStack_Reco", ";Reconstructed Neutrino Energy [GeV]; Number of Selected Events");
+
+    flavourStack_Reco->Add(nueSelected_Reco);
     flavourStack_Reco->Add(nutauSelected_Reco);
     flavourStack_Reco->Add(ncSelected_Reco);
-    flavourStack_Reco->Add(nueSelected_Reco);
-    flavourStack_Reco->Add(numuFVSelected_Reco);
+    flavourStack_Reco->Add(numuSelected_Reco);
     flavourStack_Reco->Draw("hist");
 
-    auto legend_Reco = new TLegend(0.1,0.7,0.48,0.9);
-    legend_Reco->AddEntry(numuSelected_Reco, "CC #nu_{#mu} + CC #bar{#nu_{#mu}}", "f");
-    legend_Reco->AddEntry(numuFVSelected_Reco, "CC #nu_{#mu} + CC #bar{#nu_{#mu}} out of FV", "f");
+    auto legend_Reco = new TLegend(0.1,0.7,0.3,0.9);
+    legend_Reco->AddEntry(numuSelected_Reco, "CC #nu_{#mu} + #bar{#nu_{#mu}}", "f");
     legend_Reco->AddEntry(nueSelected_Reco, "CC #nu_{e} + #bar{#nu_{e}}", "f");
     legend_Reco->AddEntry(nutauSelected_Reco, "CC #nu_{#tau} + #bar{#nu_{#tau}}", "f");
     legend_Reco->AddEntry(ncSelected_Reco, "NC", "f");
     legend_Reco->Draw("same");
 
+    /*
     TCanvas * c2 = new TCanvas("pdg decomposition", "pdg decomposition");
     THStack * pdgStack = new THStack("pdgStack", "Selected Background Decomposition;Pandizzle Score;nEvents");
 
@@ -279,6 +263,7 @@ void SelectedPlots(const NeutrinoEventVector &nuVector)
     legend2->AddEntry(other, "other", "f");
 
     legend2->Draw("same");
+    */
 }
 
 
@@ -325,7 +310,7 @@ void SelectedBackgroundPlots(const NeutrinoEventVector &nuVector)
         // Look at numu selected background
         if (PassNumuSelection(nu, IS_NEUTRINO))
         {
-            const double weight(nu.m_projectedPOTWeight * (nu.m_isNC ? 1.0 : GetOscWeight(nu)));
+            const double weight(nu.m_projectedPOTWeight * (nu.m_isNC ? 1.0 : GetOscWeight(nu)) * POT_CONVERSION);
             selectedBackground += weight;
 
             if (nu.m_isNC)
@@ -512,7 +497,7 @@ void SelectedNumuBackgroundPlots(const NeutrinoEventVector &nuVector)
         // Apply Selection
         if ((!PERFORM_OLD_NUE_SELECTION && PassNueSelection(nu)) || (PERFORM_OLD_NUE_SELECTION && PassOldNueSelection(nu)))
         {
-            const double weight(nu.m_projectedPOTWeight * (nu.m_isNC ? 1.0 : GetOscWeight(nu)));
+            const double weight(nu.m_projectedPOTWeight * (nu.m_isNC ? 1.0 : GetOscWeight(nu)) * POT_CONVERSION);
             selectedBackground += weight;
 
             // Fill selected shower histograms
@@ -709,7 +694,7 @@ void RejectedSignalPlots(const NeutrinoEventVector &nuVector)
         if (PassNumuSelection(nu, IS_NEUTRINO))
             continue;
 
-        const double weight(nu.m_projectedPOTWeight * (nu.m_isNC ? 1.0 : GetOscWeight(nu)));
+        const double weight(nu.m_projectedPOTWeight * (nu.m_isNC ? 1.0 : GetOscWeight(nu)) * POT_CONVERSION);
         selectedSignal += weight;
         
         /*    
@@ -864,7 +849,7 @@ void RejectedSignalNumuLengthPlots(const NeutrinoEventVector &nuVector)
         if (nu.m_selTrackTruePdg != 13)
             continue;
 
-        const double weight(nu.m_projectedPOTWeight * (nu.m_isNC ? 1.0 : GetOscWeight(nu)));
+        const double weight(nu.m_projectedPOTWeight * (nu.m_isNC ? 1.0 : GetOscWeight(nu)) * POT_CONVERSION);
 
         double length(maxLength);
 
@@ -925,7 +910,7 @@ void SelectedSignalPlots(const NeutrinoEventVector &nuVector)
         //if (!PassNumuSelection(nu, IS_NEUTRINO))
         //continue;
         
-        const double weight(nu.m_projectedPOTWeight * (nu.m_isNC ? 1.0 : GetOscWeight(nu)));
+        const double weight(nu.m_projectedPOTWeight * (nu.m_isNC ? 1.0 : GetOscWeight(nu)) * POT_CONVERSION);
         selectedSignal += weight;
 
         if (std::abs(nu.m_selTrackTruePdg) == 11)

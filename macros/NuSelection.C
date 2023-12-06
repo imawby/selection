@@ -6,13 +6,16 @@
 bool PERFORM_CVN_SELECTION = false;
 bool PERFORM_OLD_NUE_SELECTION = false;
 bool IS_NEUTRINO = true;
-const bool IS_JAM_SELECTION = false;
+const bool IS_JAM_SELECTION = true;
+//const double POT_CONVERSION =  1.1/1.47;
+const double POT_CONVERSION =  1.0;
 
 void NuSelection(const std::string &inputFileName)
 {
     std::cout << "\033[31m" << "Performing " << "\033[33m" << (PERFORM_CVN_SELECTION ? "CVN " : "DIZZLE ") << "\033[31m" << "selection" << "\033[0m" << std::endl;
     std::cout << "\033[31m" << "Performing " << "\033[33m" << (PERFORM_OLD_NUE_SELECTION ? "old " : "new ") << "\033[31m" << "nue selection" << "\033[0m" << std::endl; 
     std::cout << "\033[31m" << "For " << "\033[33m" << (IS_NEUTRINO ? "F" : "R") << "\033[31m" << "HC" << "\033[0m" << std::endl;
+    std::cout << "\033[31m" << "Applied POT scale (because i am dumb): " << "\033[33m" << POT_CONVERSION << "\033[0m" << std::endl;
 
     NeutrinoEventVector neutrinoEventVector;
     ReadFile(inputFileName, neutrinoEventVector);
@@ -82,7 +85,7 @@ void PerformSelection(const NeutrinoEventVector &nuVector, NuSelectionHistogramC
         const bool isNumuCCSignal(isNueCCSignal ? false : IsNumuCCSignal(nu, IS_NEUTRINO));
         const bool isNumuFlavourCCSignal(isNueFlavourCCSignal ? false : IsNumuFlavourCCSignal(nu));
 
-        const double weight(nu.m_projectedPOTWeight * (nu.m_isNC ? 1.0 : GetOscWeight(nu)));
+        const double weight(nu.m_projectedPOTWeight * (nu.m_isNC ? 1.0 : GetOscWeight(nu)) * POT_CONVERSION);
 
         // Fill truth histograms
         if (isNueCCSignal)
@@ -436,7 +439,7 @@ void FindEventsToPass(const NeutrinoEventVector &nuVector, std::vector<int> &eve
         const NeutrinoEvent &nu(nuVector[i]);
         const bool isNueFlavourCCSignal(IsNueFlavourCCSignal(nu));
         const bool passNueSelection(PERFORM_CVN_SELECTION ? PassCVNNueSelection(nu) : PassNueSelection(nu, true));
-        const double weight(nu.m_projectedPOTWeight * (nu.m_isNC ? 1.0 : GetOscWeight(nu)));
+        const double weight(nu.m_projectedPOTWeight * (nu.m_isNC ? 1.0 : GetOscWeight(nu)) * POT_CONVERSION);
 
         // Apply Selection
         if (passNueSelection)
@@ -480,7 +483,7 @@ void FindEventsToPass(const NeutrinoEventVector &nuVector, std::vector<int> &eve
             continue;
 
         const NeutrinoEvent &nu(nuVector[selectedBackgroundIndices[randomIndex]]);
-        const double weight(nu.m_projectedPOTWeight * (nu.m_isNC ? 1.0 : GetOscWeight(nu)));
+        const double weight(nu.m_projectedPOTWeight * (nu.m_isNC ? 1.0 : GetOscWeight(nu)) * POT_CONVERSION);
 
         removedBackground += weight;
         std::cout << "randomIndex: " << randomIndex << std::endl;

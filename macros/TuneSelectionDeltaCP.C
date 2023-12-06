@@ -10,14 +10,17 @@ double ComputeSelectionMetric(const TH3D * nue_zero, const TH3D * nue_pi, const 
     const TH3D * numu_zero, const TH3D * numu_pi, const std::vector<TH3D*> numu_deltaCP, const double numuPandizzle);
 
 const bool IS_NEUTRINO = true;
-const bool IS_JAM_TUNE = false;
+const bool IS_JAM_TUNE = true;
+
+//const double POT_CONVERSION =  1.1/1.47;
+const double POT_CONVERSION =  1.0;
 
 void TuneSelectionDeltaCP(const std::string &inputFileName_full)
 {
     std::cout << "ONLY ADDING NUE SENSITIVITY" << std::endl;
     std::cout << "\033[31m" << "For " << "\033[33m" << (IS_NEUTRINO ? "F" : "R") << "\033[31m" << "HC" << "\033[0m" << std::endl;
     std::cout << "\033[31m" << "Performing " << "\033[33m" << (IS_JAM_TUNE ? "JAM" : "PANDRIZZLE") << "\033[31m" << "TUNING" << "\033[0m" << std::endl;
-
+    std::cout << "\033[31m" << "Applied POT scale (because i am dumb): " << "\033[33m" << POT_CONVERSION << "\033[0m" << std::endl;
     NeutrinoEventVector nuEventVector_full;
     ReadFile(inputFileName_full, nuEventVector_full);
 
@@ -97,17 +100,17 @@ void FindSelectionCuts(const NeutrinoEventVector &nuEventVector_full)
         if (!isRecoInFV)
             continue;
 
-        const double weight_zero(nu.m_projectedPOTWeight * (nu.m_isNC ? 1.0 : GetOscWeight(nu, 0.0)));
+        const double weight_zero(nu.m_projectedPOTWeight * (nu.m_isNC ? 1.0 : GetOscWeight(nu, 0.0)) * POT_CONVERSION);
         nue_zero->Fill(nu.m_selTrackPandizzleScore, IS_JAM_TUNE ? nu.m_selShowerJamPandrizzleScore : nu.m_selShowerPandrizzleScore, nu.m_nueRecoENu, weight_zero);
         numu_zero->Fill(nu.m_selTrackPandizzleScore, IS_JAM_TUNE ? nu.m_selShowerJamPandrizzleScore : nu.m_selShowerPandrizzleScore, nu.m_numuRecoENu, weight_zero);
 
-        const double weight_pi(nu.m_projectedPOTWeight * (nu.m_isNC ? 1.0 : GetOscWeight(nu, TMath::Pi())));
+        const double weight_pi(nu.m_projectedPOTWeight * (nu.m_isNC ? 1.0 : GetOscWeight(nu, TMath::Pi())) * POT_CONVERSION);
         nue_pi->Fill(nu.m_selTrackPandizzleScore, IS_JAM_TUNE ? nu.m_selShowerJamPandrizzleScore : nu.m_selShowerPandrizzleScore, nu.m_nueRecoENu, weight_pi);
         numu_pi->Fill(nu.m_selTrackPandizzleScore, IS_JAM_TUNE ? nu.m_selShowerJamPandrizzleScore : nu.m_selShowerPandrizzleScore, nu.m_numuRecoENu, weight_pi);
 
         for (int i = 0; i < nDeltaCPValues; ++i)
         {
-            const double weight_deltaCP(nu.m_projectedPOTWeight * (nu.m_isNC ? 1.0 : GetOscWeight(nu, deltaCPValues[i])));
+            const double weight_deltaCP(nu.m_projectedPOTWeight * (nu.m_isNC ? 1.0 : GetOscWeight(nu, deltaCPValues[i])) * POT_CONVERSION);
             nue_deltaCP[i]->Fill(nu.m_selTrackPandizzleScore, IS_JAM_TUNE ? nu.m_selShowerJamPandrizzleScore : nu.m_selShowerPandrizzleScore, nu.m_nueRecoENu, weight_deltaCP);
             numu_deltaCP[i]->Fill(nu.m_selTrackPandizzleScore, IS_JAM_TUNE ? nu.m_selShowerJamPandrizzleScore : nu.m_selShowerPandrizzleScore, nu.m_numuRecoENu, weight_deltaCP);
         }
